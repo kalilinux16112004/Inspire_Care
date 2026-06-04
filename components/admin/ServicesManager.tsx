@@ -21,7 +21,13 @@ export default function ServicesManager() {
   const [showForm, setShowForm] = useState(false);
   const supabase = createClient();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    category: string;
+    price: number | string;
+    duration_minutes: number | string;
+  }>({
     name: '',
     description: '',
     category: '',
@@ -31,6 +37,22 @@ export default function ServicesManager() {
 
   useEffect(() => {
     fetchServices();
+
+    const channel = supabase
+      .channel('services-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
+        console.log('[v0] realtime services event', payload);
+        fetchServices();
+      })
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {
+        channel.unsubscribe();
+      }
+    };
   }, []);
 
   const fetchServices = async () => {
@@ -53,12 +75,27 @@ export default function ServicesManager() {
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('services').insert({
+      const payload = {
         ...formData,
+        price: formData.price === '' || formData.price == null ? null : Number(formData.price),
+        duration_minutes:
+          formData.duration_minutes === '' || formData.duration_minutes == null
+            ? null
+            : Number(formData.duration_minutes),
         is_active: true,
+      };
+
+      const res = await fetch('/api/admin/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      if (error) throw error;
+      const result = await res.json();
+      if (!res.ok) {
+        console.error('[v0] Server insert error:', result);
+        throw new Error(result?.error?.message || result?.error || 'Insert failed');
+      }
 
       setFormData({
         name: '',
@@ -69,8 +106,8 @@ export default function ServicesManager() {
       });
       setShowForm(false);
       fetchServices();
-    } catch (error) {
-      console.error('[v0] Error adding service:', error);
+    } catch (error: any) {
+      console.error('[v0] Error adding service:', error?.message ?? error, { error });
     }
   };
 
@@ -123,15 +160,15 @@ export default function ServicesManager() {
             <input
               type="number"
               placeholder="Price"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+              value={formData.price === '' || Number.isNaN(Number(formData.price)) ? '' : formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
               className="w-full border border-border rounded px-3 py-2"
             />
             <input
               type="number"
               placeholder="Duration (minutes)"
-              value={formData.duration_minutes}
-              onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })}
+              value={formData.duration_minutes === '' || Number.isNaN(Number(formData.duration_minutes)) ? '' : formData.duration_minutes}
+              onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value === '' ? '' : parseInt(e.target.value) })}
               className="w-full border border-border rounded px-3 py-2"
             />
           </div>

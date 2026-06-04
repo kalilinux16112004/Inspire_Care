@@ -31,6 +31,22 @@ export default function DoctorsManager() {
 
   useEffect(() => {
     fetchDoctors();
+
+    const channel = supabase
+      .channel('doctors-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
+        console.log('[v0] realtime doctors event', payload);
+        fetchDoctors();
+      })
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {
+        channel.unsubscribe();
+      }
+    };
   }, []);
 
   const fetchDoctors = async () => {
@@ -123,15 +139,15 @@ export default function DoctorsManager() {
           <input
             type="number"
             placeholder="Experience (years)"
-            value={formData.experience_years}
-            onChange={(e) => setFormData({ ...formData, experience_years: parseInt(e.target.value) })}
+            value={typeof formData.experience_years === 'number' && Number.isNaN(formData.experience_years) ? '' : formData.experience_years}
+            onChange={(e) => setFormData({ ...formData, experience_years: e.target.value === '' ? '' : parseInt(e.target.value) })}
             className="w-full border border-border rounded px-3 py-2"
           />
           <input
             type="number"
             placeholder="Consultation Fee"
-            value={formData.consultation_fee}
-            onChange={(e) => setFormData({ ...formData, consultation_fee: parseFloat(e.target.value) })}
+            value={typeof formData.consultation_fee === 'number' && Number.isNaN(formData.consultation_fee) ? '' : formData.consultation_fee}
+            onChange={(e) => setFormData({ ...formData, consultation_fee: e.target.value === '' ? '' : parseFloat(e.target.value) })}
             className="w-full border border-border rounded px-3 py-2"
           />
           <div className="flex gap-2">

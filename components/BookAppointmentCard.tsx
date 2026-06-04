@@ -12,6 +12,8 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
     phone: '',
     department: defaultDepartment || '',
     preferredDate: '',
+    patientEmail: '',
+    preferredTime: '',
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -25,7 +27,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
     if (e) e.preventDefault()
 
     setMessage(null)
-    if (!form.patientName || !form.phone || !form.department || !form.preferredDate) {
+    if (!form.patientName || !form.phone || !form.department || !form.preferredDate || !form.patientEmail) {
       setMessage('Please fill in all fields')
       return
     }
@@ -34,16 +36,18 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
     try {
       const { error } = await supabase.from('appointments').insert({
         patient_name: form.patientName,
+        patient_email: form.patientEmail,
         patient_phone: form.phone,
         department: form.department,
         appointment_date: form.preferredDate,
+        appointment_time: form.preferredTime || null,
         status: 'pending',
       })
 
       if (error) throw error
 
       setMessage('Appointment request submitted — we will contact you to confirm.')
-      setForm({ patientName: '', phone: '', department: defaultDepartment || '', preferredDate: '' })
+      setForm({ patientName: '', phone: '', department: defaultDepartment || '', preferredDate: '', patientEmail: '', preferredTime: '' })
     } catch (err) {
       console.error('[v0] Error submitting appointment:', err)
       setMessage('Failed to submit appointment. Please try again.')
@@ -82,6 +86,17 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
         <div>
           <label className="block text-sm font-medium mb-1">Preferred Date</label>
           <Input name="preferredDate" type="date" value={form.preferredDate} onChange={handleChange} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Preferred Time</label>
+            <Input name="preferredTime" type="time" value={form.preferredTime} onChange={handleChange} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <Input name="patientEmail" type="email" value={form.patientEmail} onChange={handleChange} placeholder="you@example.com" />
+          </div>
         </div>
 
         {message && <p className="text-sm text-center text-muted-foreground">{message}</p>}

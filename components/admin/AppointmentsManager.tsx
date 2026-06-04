@@ -27,6 +27,30 @@ export default function AppointmentsManager() {
     fetchAppointments();
   }, [filter]);
 
+  useEffect(() => {
+    // Subscribe to realtime changes on appointments and refresh list
+    const channel = supabase
+      .channel('appointments-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        (payload) => {
+          console.log('[v0] realtime appointment event:', payload);
+          fetchAppointments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (err) {
+        // fallback unsubscribe
+        channel.unsubscribe();
+      }
+    };
+  }, []);
+
   const fetchAppointments = async () => {
     setLoading(true);
     try {

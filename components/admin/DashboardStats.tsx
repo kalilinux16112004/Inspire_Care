@@ -1,25 +1,62 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Users, Stethoscope, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar, Stethoscope, AlertCircle, CheckCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function DashboardStats() {
+  const supabase = createClient();
+
   const [stats, setStats] = useState({
-    totalAppointments: 234,
-    pendingAppointments: 12,
-    completedAppointments: 182,
-    cancelledAppointments: 40,
-    totalDoctors: 45,
-    totalPatients: 1250,
-    appointmentsThisMonth: 45,
-    appointmentsThisWeek: 18,
-    occupancyRate: 78,
-    avgRating: 4.7,
+    totalAppointments: 0,
+    pendingAppointments: 0,
+    completedAppointments: 0,
+    cancelledAppointments: 0,
+    totalDoctors: 0,
+    totalPatients: 0,
+    appointmentsThisMonth: 0,
+    appointmentsThisWeek: 0,
+    occupancyRate: 0,
+    avgRating: 0,
   });
 
+  const fetchStats = async () => {
+    try {
+      const { data: totalA } = await supabase.from('appointments').select('*');
+      const { data: pending } = await supabase.from('appointments').select('*').eq('status', 'pending');
+      const { data: completed } = await supabase.from('appointments').select('*').eq('status', 'confirmed');
+      const { data: cancelled } = await supabase.from('appointments').select('*').eq('status', 'rejected');
+      const { data: doctors } = await supabase.from('doctors').select('id');
+
+      setStats((s) => ({
+        ...s,
+        totalAppointments: Array.isArray(totalA) ? totalA.length : 0,
+        pendingAppointments: Array.isArray(pending) ? pending.length : 0,
+        completedAppointments: Array.isArray(completed) ? completed.length : 0,
+        cancelledAppointments: Array.isArray(cancelled) ? cancelled.length : 0,
+        totalDoctors: Array.isArray(doctors) ? doctors.length : 0,
+      }));
+    } catch (err) {
+      console.error('[v0] Error fetching dashboard stats:', err);
+    }
+  };
+
   useEffect(() => {
-    // In production, fetch from Supabase
-    console.log('[v0] Dashboard stats loaded');
+    fetchStats();
+
+    const channel = supabase
+      .channel('dashboard-stats')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => fetchStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, () => fetchStats())
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (e) {
+        // ignore
+      }
+    };
   }, []);
 
   const statCards = [
@@ -126,23 +163,7 @@ export default function DashboardStats() {
         </div>
       </div>
 
-      {/* Recent Activity Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Recent Activity Summary</h3>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { title: 'Appointments Booked Today', value: 8, icon: '📅' },
-            { title: 'New Patient Registrations', value: 5, icon: '👥' },
-            { title: 'Average Rating', value: stats.avgRating.toFixed(1), icon: '⭐' },
-          ].map((activity, idx) => (
-            <div key={idx} className="text-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
-              <div className="text-3xl mb-2">{activity.icon}</div>
-              <p className="text-sm text-muted-foreground mb-1">{activity.title}</p>
-              <p className="text-2xl font-bold text-foreground">{activity.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Recent Activity Summary removed per request */}
     </div>
   );
 }
