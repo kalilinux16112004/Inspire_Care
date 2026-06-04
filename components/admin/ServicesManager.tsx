@@ -1,0 +1,190 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
+
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  duration_minutes: number;
+  is_active: boolean;
+}
+
+export default function ServicesManager() {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const supabase = createClient();
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    price: 0,
+    duration_minutes: 30,
+  });
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (error) {
+      console.error('[v0] Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase.from('services').insert({
+        ...formData,
+        is_active: true,
+      });
+
+      if (error) throw error;
+
+      setFormData({
+        name: '',
+        description: '',
+        category: '',
+        price: 0,
+        duration_minutes: 30,
+      });
+      setShowForm(false);
+      fetchServices();
+    } catch (error) {
+      console.error('[v0] Error adding service:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure?')) return;
+
+    try {
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error) throw error;
+      fetchServices();
+    } catch (error) {
+      console.error('[v0] Error deleting service:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Button
+        onClick={() => setShowForm(!showForm)}
+        className="bg-primary hover:bg-primary/90 gap-2"
+      >
+        <Plus className="w-4 h-4" />
+        Add Service
+      </Button>
+
+      {showForm && (
+        <form onSubmit={handleAddService} className="bg-white border border-border rounded-lg p-6 space-y-4">
+          <input
+            type="text"
+            placeholder="Service Name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+            required
+          />
+          <textarea
+            placeholder="Description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2 min-h-20"
+          />
+          <input
+            type="text"
+            placeholder="Category"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="number"
+              placeholder="Price"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+              className="w-full border border-border rounded px-3 py-2"
+            />
+            <input
+              type="number"
+              placeholder="Duration (minutes)"
+              value={formData.duration_minutes}
+              onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })}
+              className="w-full border border-border rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" className="bg-primary hover:bg-primary/90">Save</Button>
+            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white border border-border rounded-lg overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : services.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">No services yet</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Price</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Duration</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {services.map((service) => (
+                  <tr key={service.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium">{service.name}</td>
+                    <td className="px-6 py-4">{service.category}</td>
+                    <td className="px-6 py-4">₹{service.price}</td>
+                    <td className="px-6 py-4">{service.duration_minutes} min</td>
+                    <td className="px-6 py-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(service.id)}
+                        className="text-red-600 border-red-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
