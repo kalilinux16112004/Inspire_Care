@@ -292,16 +292,12 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                   ))}
                 </div>
 
-                <Link
-                  href="/"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById('appointment-booking')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('openBooking', { detail: { doctorId: String(doctor.id) } }))}
                   className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors block text-center"
                 >
                   Book Appointment
-                </Link>
+                </button>
               </div>
 
               {/* Contact Info */}

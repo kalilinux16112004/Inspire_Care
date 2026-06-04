@@ -36,6 +36,7 @@ export default function Navigation() {
               alt="Team Inspire Care"
               className="h-12 w-auto"
             />
+            <span className="hidden sm:block text-lg font-bold text-primary">Team Inspire Care</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -57,10 +58,8 @@ export default function Navigation() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Button asChild size="sm">
-              <Link href="/#contact">
-                Book Appointment
-              </Link>
+            <Button size="sm" onClick={() => window.dispatchEvent(new CustomEvent('openBooking'))}>
+              Book Quick Appointment
             </Button>
           </div>
 
@@ -95,10 +94,8 @@ export default function Navigation() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 px-4 pt-2">
-              <Button asChild size="sm" className="w-full">
-                <Link href="/#contact">
-                  Book Appointment
-                </Link>
+              <Button size="sm" className="w-full" onClick={() => { window.dispatchEvent(new CustomEvent('openBooking')); setIsOpen(false); }}>
+                Book Quick Appointment
               </Button>
             </div>
           </div>

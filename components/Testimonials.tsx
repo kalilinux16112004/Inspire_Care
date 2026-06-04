@@ -19,17 +19,35 @@ export default function Testimonials() {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const { data, error } = await supabase
+        const result = await supabase
           .from('reviews')
           .select('*')
           .eq('is_approved', true)
           .order('created_at', { ascending: false })
           .limit(3);
 
-        if (error) throw error;
-        setReviews(data || []);
-      } catch (error) {
-        console.error('[v0] Error fetching reviews:', error);
+        // Log full response for diagnostics
+        console.debug('[v0] reviews fetch result:', {
+          data: result.data,
+          error: result.error,
+          status: (result as any).status,
+          statusText: (result as any).statusText,
+        });
+
+        if (result.error) throw result.error;
+        setReviews(result.data || []);
+      } catch (err) {
+        const error = err as any;
+        if (error instanceof Error) {
+          console.error('[v0] Error fetching reviews:', {
+            message: error.message,
+            stack: error.stack,
+          });
+        } else if (error) {
+          console.error('[v0] Error fetching reviews (non-Error):', error);
+        } else {
+          console.error('[v0] Error fetching reviews: unknown error');
+        }
       } finally {
         setLoading(false);
       }

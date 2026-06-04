@@ -50,15 +50,14 @@ export default function Hero() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Link href="/#contact">
                 <Button 
                   size="lg" 
                   className="bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8"
+                  onClick={() => window.dispatchEvent(new CustomEvent('openBooking'))}
                 >
                   Book Appointment
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </Link>
               <Link href="/about">
                 <Button 
                   size="lg" 
