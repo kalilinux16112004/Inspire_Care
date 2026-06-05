@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import ConfirmDialog from './ConfirmDialog';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 interface Service {
@@ -19,6 +20,8 @@ export default function ServicesManager() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const supabase = createClient();
 
   const [formData, setFormData] = useState<{
@@ -85,16 +88,30 @@ export default function ServicesManager() {
         is_active: true,
       };
 
-      const res = await fetch('/api/admin/services', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (editingId) {
+        const res = await fetch('/api/admin/services', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, payload }),
+        })
 
-      const result = await res.json();
-      if (!res.ok) {
-        console.error('[v0] Server insert error:', result);
-        throw new Error(result?.error?.message || result?.error || 'Insert failed');
+        const result = await res.json()
+        if (!res.ok) {
+          console.error('[v0] Server update error:', result)
+          throw new Error(result?.error?.message || result?.error || 'Update failed')
+        }
+      } else {
+        const res = await fetch('/api/admin/services', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          console.error('[v0] Server insert error:', result);
+          throw new Error(result?.error?.message || result?.error || 'Insert failed');
+        }
       }
 
       setFormData({
@@ -105,6 +122,7 @@ export default function ServicesManager() {
         duration_minutes: 30,
       });
       setShowForm(false);
+      setEditingId(null);
       fetchServices();
     } catch (error: any) {
       console.error('[v0] Error adding service:', error?.message ?? error, { error });
@@ -112,16 +130,38 @@ export default function ServicesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure?')) return;
+    setDeletingId(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deletingId) return;
     try {
-      const { error } = await supabase.from('services').delete().eq('id', id);
-      if (error) throw error;
-      fetchServices();
+      const res = await fetch(`/api/admin/services?id=${deletingId}`, { method: 'DELETE' })
+      const result = await res.json()
+      if (!res.ok) {
+        console.error('[v0] Server delete error:', result)
+        throw new Error(result?.error || 'Delete failed')
+      }
+      setDeletingId(null)
+      fetchServices()
     } catch (error) {
       console.error('[v0] Error deleting service:', error);
     }
   };
+
+  const cancelDelete = () => setDeletingId(null);
+
+  const startEdit = (service: Service) => {
+    setFormData({
+      name: service.name || '',
+      description: service.description || '',
+      category: service.category || '',
+      price: service.price || 0,
+      duration_minutes: service.duration_minutes || 30,
+    });
+    setEditingId(service.id);
+    setShowForm(true);
+  }
 
   return (
     <div className="space-y-6">
@@ -206,14 +246,19 @@ export default function ServicesManager() {
                     <td className="px-6 py-4">₹{service.price}</td>
                     <td className="px-6 py-4">{service.duration_minutes} min</td>
                     <td className="px-6 py-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(service.id)}
-                        className="text-red-600 border-red-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => startEdit(service)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(service.id)}
+                          className="text-red-600 border-red-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -222,6 +267,17 @@ export default function ServicesManager() {
           </div>
         )}
       </div>
+      {deletingId && (
+        <ConfirmDialog
+          open={!!deletingId}
+          title="Delete Service"
+          description="Are you sure you want to delete this service? This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
     </div>
   );
 }

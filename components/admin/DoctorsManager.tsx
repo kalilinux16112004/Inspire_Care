@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import ConfirmDialog from './ConfirmDialog';
 import { Loader2, Plus, Trash2, Edit2 } from 'lucide-react';
 
 interface Doctor {
@@ -19,6 +20,8 @@ export default function DoctorsManager() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
@@ -69,12 +72,18 @@ export default function DoctorsManager() {
   const handleAddDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('doctors').insert({
-        ...formData,
-        is_active: true,
-      });
-
-      if (error) throw error;
+      if (editingId) {
+        const { error } = await supabase.from('doctors').update({
+          ...formData,
+        }).eq('id', editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('doctors').insert({
+          ...formData,
+          is_active: true,
+        });
+        if (error) throw error;
+      }
 
       setFormData({
         name: '',
@@ -84,6 +93,7 @@ export default function DoctorsManager() {
         consultation_fee: 0,
       });
       setShowForm(false);
+      setEditingId(null);
       fetchDoctors();
     } catch (error) {
       console.error('[v0] Error adding doctor:', error);
@@ -91,16 +101,34 @@ export default function DoctorsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure?')) return;
+    setDeletingId(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deletingId) return;
     try {
-      const { error } = await supabase.from('doctors').delete().eq('id', id);
+      const { error } = await supabase.from('doctors').delete().eq('id', deletingId);
       if (error) throw error;
+      setDeletingId(null);
       fetchDoctors();
     } catch (error) {
       console.error('[v0] Error deleting doctor:', error);
     }
   };
+
+  const cancelDelete = () => setDeletingId(null);
+
+  const startEdit = (doctor: Doctor) => {
+    setFormData({
+      name: doctor.name || '',
+      specialization: doctor.specialization || '',
+      qualification: doctor.qualification || '',
+      experience_years: doctor.experience_years || 0,
+      consultation_fee: doctor.consultation_fee || 0,
+    });
+    setEditingId(doctor.id);
+    setShowForm(true);
+  }
 
   return (
     <div className="space-y-6">
@@ -184,7 +212,7 @@ export default function DoctorsManager() {
                     <td className="px-6 py-4">{doctor.experience_years} years</td>
                     <td className="px-6 py-4">₹{doctor.consultation_fee}</td>
                     <td className="px-6 py-4 flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(doctor)}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
@@ -203,6 +231,17 @@ export default function DoctorsManager() {
           </div>
         )}
       </div>
+      {deletingId && (
+        <ConfirmDialog
+          open={!!deletingId}
+          title="Delete Doctor"
+          description="Are you sure you want to delete this doctor? This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
     </div>
   );
 }
