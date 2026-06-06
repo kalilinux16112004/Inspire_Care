@@ -99,7 +99,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           />
         </div>
 
-        <div>
+        {/* <div>
           <label className="block text-sm font-medium mb-1">Email Address</label>
           <Input 
             name="email" 
@@ -108,7 +108,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
             onChange={handleChange} 
             placeholder="your@email.com" 
           />
-        </div>
+        </div> */}
 
         <div>
           <label className="block text-sm font-medium mb-1">Preferred Date</label>
