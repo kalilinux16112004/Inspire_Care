@@ -2,6 +2,7 @@
 
 import Navigation from '@/components/Navigation';
 import Hero from '@/components/Hero';
+import KeyFeatures from '@/components/KeyFeatures';
 import Services from '@/components/Services';
 import Doctors from '@/components/Doctors';
 import Testimonials from '@/components/Testimonials';
@@ -15,6 +16,7 @@ export default function Home() {
       <Navigation />
       <main>
         <Hero />
+        <KeyFeatures />
         <Services />
         <Doctors />
         <Testimonials />

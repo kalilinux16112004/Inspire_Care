@@ -88,7 +88,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           <Input name="preferredDate" type="date" value={form.preferredDate} onChange={handleChange} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Preferred Time</label>
             <Input name="preferredTime" type="time" value={form.preferredTime} onChange={handleChange} />
@@ -97,7 +97,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
             <label className="block text-sm font-medium mb-1">Email</label>
             <Input name="patientEmail" type="email" value={form.patientEmail} onChange={handleChange} placeholder="you@example.com" />
           </div>
-        </div>
+        </div> */}
 
         {message && <p className="text-sm text-center text-muted-foreground">{message}</p>}
 

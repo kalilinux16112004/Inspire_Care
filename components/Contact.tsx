@@ -82,8 +82,14 @@ export default function Contact() {
                 <MapPin className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-foreground mb-1">Location</h3>
-                  <p className="text-muted-foreground">Mumbai, Maharashtra</p>
-                  <p className="text-muted-foreground text-sm">Asia South</p>
+                  <p className="text-muted-foreground">1st Floor,Raj Antila CHS Ltd.,Poonam Garden,S.K.Stone</p>
+                  <p className="text-muted-foreground text-sm">Mira Road(E),Thane-401107</p>
+                  <iframe
+                        src="https://share.google/x0nGtbQSwL81NlGWF"
+                        width="100%"
+                        height="150"
+                        className="border border-border rounded-lg"     
+                ></iframe>
                 </div>
               </div>
             </div>

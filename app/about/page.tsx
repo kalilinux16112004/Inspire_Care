@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Heart, Users, Award, Stethoscope } from 'lucide-react';
+import { Heart, Users, Award, Stethoscope, Lightbulb, Eye } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -24,24 +24,29 @@ export default function AboutPage() {
 
   const values = [
     {
-      title: 'Compassionate Care',
-      description: 'We treat every patient with empathy and respect, understanding that healthcare is personal.',
+      title: 'Teamwork',
+      description: 'Collaboration across all departments and disciplines to deliver comprehensive patient care and achieve excellence together.',
+      icon: Users,
+    },
+    {
+      title: 'Patient Centered Approach',
+      description: 'Placing patient needs, comfort, and well-being at the center of everything we do, ensuring personalized and compassionate care.',
       icon: Heart,
     },
     {
-      title: 'Excellence',
-      description: 'Committed to the highest standards of medical practice and continuous improvement.',
+      title: 'Trust',
+      description: 'Building and maintaining trust through integrity, reliability, and honest communication with our patients and community.',
       icon: Award,
     },
     {
-      title: 'Innovation',
-      description: 'Adopting latest medical technologies and practices for better patient outcomes.',
-      icon: Stethoscope,
+      title: 'Research and Innovation',
+      description: 'Continuously advancing medical knowledge and adopting cutting-edge technologies to improve treatment outcomes.',
+      icon: Lightbulb,
     },
     {
-      title: 'Accessibility',
-      description: 'Making quality healthcare accessible to everyone in our community.',
-      icon: Users,
+      title: 'Transparency',
+      description: 'Open communication about procedures, costs, and healthcare decisions, empowering patients to make informed choices.',
+      icon: Eye,
     },
   ];
 
@@ -56,7 +61,7 @@ export default function AboutPage() {
         <section className="bg-gradient-to-r from-blue-50 to-blue-100 py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 text-balance">
-              Caring with Compassion Since 2009
+              Caring with Compassion 
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty">
               Team Inspire Care Multispeciality Hospital has been serving our community with dedication, 
@@ -144,47 +149,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Leadership Team */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Our Leadership</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                { name: 'Dr. Rajesh Kumar', role: 'Chief Medical Officer', dept: 'Internal Medicine' },
-                { name: 'Dr. Priya Sharma', role: 'Chief of Surgery', dept: 'Surgical Oncology' },
-                { name: 'Dr. Amit Patel', role: 'Director of Operations', dept: 'Hospital Management' },
-              ].map((leader, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4"></div>
-                  <h3 className="text-xl font-bold mb-1">{leader.name}</h3>
-                  <p className="text-primary font-semibold mb-1">{leader.role}</p>
-                  <p className="text-muted-foreground text-sm">{leader.dept}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-blue-600 text-white">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Experience Excellence in Healthcare?</h2>
-            <p className="text-blue-100 mb-8 text-lg">
-              Schedule your appointment today and join thousands of satisfied patients.
-            </p>
-            <Link
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                const element = document.getElementById('appointment-booking');
-                element?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-            >
-              Book an Appointment
-            </Link>
-          </div>
-        </section>
       </main>
       <Footer />
     </>
