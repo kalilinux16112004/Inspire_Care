@@ -1,117 +1,104 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Star, MapPin, Phone, Mail } from 'lucide-react';
+import { Star } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+
+interface Doctor {
+  id: string;
+  name: string;
+  department?: string;
+  specialization?: string;
+  experience_years?: number;
+  experience?: number;
+  consultation_fee?: number;
+  fee?: number;
+  rating?: number;
+  reviews?: number;
+  bio?: string;
+  image_url?: string;
+  image?: string;
+  description?: string;
+  qualification?: string;
+  availability?: string;
+  timing?: string;
+}
 
 export default function DoctorsPage() {
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  const doctors = [
-    {
-      id: 1,
-      name: 'Dr. Rajesh Kumar',
-      department: 'Internal Medicine',
-      specialization: 'Cardiology',
-      experience: 18,
-      qualification: 'MD, DM Cardiology',
-      fee: 1000,
-      rating: 4.9,
-      reviews: 245,
-      description: 'Expert in cardiac care with special interest in interventional cardiology.',
-      availability: 'Mon, Tue, Wed, Thu, Fri',
-      timing: '10:00 AM - 5:00 PM',
-      image: '👨‍⚕️',
-    },
-    {
-      id: 2,
-      name: 'Dr. Priya Sharma',
-      department: 'Gynecology',
-      specialization: 'Obstetrics & Gynecology',
-      experience: 16,
-      qualification: 'MD, DGO',
-      fee: 900,
-      rating: 4.8,
-      reviews: 312,
-      description: 'Specialized in high-risk pregnancies and minimally invasive gynecological procedures.',
-      availability: 'Mon, Wed, Fri, Sat',
-      timing: '11:00 AM - 6:00 PM',
-      image: '👩‍⚕️',
-    },
-    {
-      id: 3,
-      name: 'Dr. Amit Patel',
-      department: 'Orthopedics',
-      specialization: 'Joint Replacement',
-      experience: 14,
-      qualification: 'MS, MNAMS',
-      fee: 800,
-      rating: 4.7,
-      reviews: 198,
-      description: 'Expert in hip and knee replacement surgeries with excellent post-operative outcomes.',
-      availability: 'Tue, Thu, Sat, Sun',
-      timing: '2:00 PM - 8:00 PM',
-      image: '👨‍⚕️',
-    },
-    {
-      id: 4,
-      name: 'Dr. Neha Singh',
-      department: 'Pediatrics',
-      specialization: 'Neonatal Care',
-      experience: 12,
-      qualification: 'MD, DNB Pediatrics',
-      fee: 700,
-      rating: 4.9,
-      reviews: 276,
-      description: 'Compassionate care for newborns and children with expertise in neonatal emergencies.',
-      availability: 'Mon, Tue, Wed, Thu, Sat',
-      timing: '9:00 AM - 4:00 PM',
-      image: '👩‍⚕️',
-    },
-    {
-      id: 5,
-      name: 'Dr. Vikram Gupta',
-      department: 'Surgery',
-      specialization: 'Surgical Oncology',
-      experience: 20,
-      qualification: 'MCh, MNAMS',
-      fee: 1200,
-      rating: 4.8,
-      reviews: 189,
-      description: 'Pioneer in minimally invasive cancer surgery with international training.',
-      availability: 'Mon, Wed, Fri',
-      timing: '10:00 AM - 3:00 PM',
-      image: '👨‍⚕️',
-    },
-    {
-      id: 6,
-      name: 'Dr. Anjali Verma',
-      department: 'Respiratory Medicine',
-      specialization: 'Pulmonology',
-      experience: 13,
-      qualification: 'MD, DM Pulmonology',
-      fee: 900,
-      rating: 4.7,
-      reviews: 167,
-      description: 'Expert in asthma, COPD, and sleep disorders management.',
-      availability: 'Tue, Thu, Fri, Sat',
-      timing: '3:00 PM - 8:00 PM',
-      image: '👩‍⚕️',
-    },
-  ];
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
 
-  const departments = ['all', ...new Set(doctors.map(d => d.department))];
+        if (error) throw error;
 
-  const filtered = doctors.filter(doctor => {
-    const matchDept = selectedDept === 'all' || doctor.department === selectedDept;
+        const mappedDoctors = (data || []).map((doctor: any) => ({
+          id: String(doctor.id),
+          name: doctor.name,
+          department: doctor.department || doctor.specialization || 'General',
+          specialization: doctor.specialization || doctor.department || 'General Practice',
+          experience: doctor.experience_years || doctor.experience || 0,
+          consultation_fee: doctor.consultation_fee || doctor.fee || 0,
+          fee: doctor.consultation_fee || doctor.fee || 0,
+          rating: doctor.rating || 4.8,
+          reviews: doctor.reviews || 0,
+          bio: doctor.bio || doctor.description || '',
+          image_url: doctor.image_url || undefined,
+          image: doctor.image_url ? undefined : '👨‍⚕️',
+          description: doctor.description || doctor.bio || 'Experienced specialist committed to exceptional care.',
+          qualification: doctor.qualification || '',
+          availability: typeof doctor.availability === 'string' ? doctor.availability : 'Mon-Fri 9:00 AM - 5:00 PM',
+          timing: doctor.timing || '',
+        }));
+
+        setDoctors(mappedDoctors);
+      } catch (error) {
+        console.error('[v0] Error fetching doctors:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, [supabase]);
+
+  const departments = ['all', ...new Set(doctors.map(d => d.department || d.specialization || 'General'))];
+
+  const filtered = doctors.filter((doctor) => {
+    const dept = doctor.department || doctor.specialization || '';
+    const matchDept = selectedDept === 'all' || dept === selectedDept;
     const matchSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase());
+      (doctor.specialization || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchDept && matchSearch;
   });
+
+  if (loading) {
+    return (
+      <>
+        <Navigation />
+        <main className="min-h-screen flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-xl font-semibold">Loading doctors...</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -201,12 +188,14 @@ export default function DoctorsPage() {
                           </div>
                           <div className="text-sm">
                             <p className="font-semibold text-gray-700">Qualification</p>
-                            <p className="text-muted-foreground">{doctor.qualification}</p>
+                            <p className="text-muted-foreground">{doctor.qualification || 'N/A'}</p>
                           </div>
                           <div className="text-sm">
                             <p className="font-semibold text-gray-700">Availability</p>
                             <p className="text-muted-foreground text-xs">{doctor.availability}</p>
-                            <p className="text-muted-foreground text-xs">{doctor.timing}</p>
+                            {doctor.timing && (
+                              <p className="text-muted-foreground text-xs">{doctor.timing}</p>
+                            )}
                           </div>
                         </div>
 

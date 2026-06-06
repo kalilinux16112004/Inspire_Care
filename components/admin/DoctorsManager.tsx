@@ -9,11 +9,20 @@ import { Loader2, Plus, Trash2, Edit2 } from 'lucide-react';
 interface Doctor {
   id: string;
   name: string;
-  specialization: string;
-  qualification: string;
-  experience_years: number;
-  consultation_fee: number;
-  is_active: boolean;
+  department?: string;
+  specialization?: string;
+  qualification?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  bio?: string;
+  image_url?: string;
+  clinicAddress?: string;
+  phone?: string;
+  email?: string;
+  languages?: string[];
+  specialServices?: string[];
+  qualifications?: string[];
+  is_active?: boolean;
 }
 
 export default function DoctorsManager() {
@@ -22,14 +31,24 @@ export default function DoctorsManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
     name: '',
+    department: '',
     specialization: '',
     qualification: '',
     experience_years: 0,
     consultation_fee: 0,
+    bio: '',
+    image_url: '',
+    clinicAddress: '',
+    phone: '',
+    email: '',
+    languages: '',
+    specialServices: '',
+    qualifications: '',
   });
 
   useEffect(() => {
@@ -69,17 +88,68 @@ export default function DoctorsManager() {
     }
   };
 
+  const uploadDoctorPhoto = async (file: File) => {
+    setPhotoUploading(true);
+    try {
+      const filePath = `doctors/${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('gallery')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('gallery')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({
+        ...prev,
+        image_url: publicUrlData.publicUrl,
+      }));
+    } catch (error) {
+      console.error('[v0] Error uploading doctor photo:', error);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const handleAddDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        name: formData.name,
+        department: formData.department,
+        specialization: formData.specialization,
+        qualification: formData.qualification,
+        experience_years: Number(formData.experience_years) || 0,
+        consultation_fee: Number(formData.consultation_fee) || 0,
+        bio: formData.bio,
+        image_url: formData.image_url,
+        clinicAddress: formData.clinicAddress,
+        phone: formData.phone,
+        email: formData.email,
+        languages: formData.languages
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        specialServices: formData.specialServices
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        qualifications: formData.qualifications
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+      };
+
       if (editingId) {
-        const { error } = await supabase.from('doctors').update({
-          ...formData,
-        }).eq('id', editingId);
+        const { error } = await supabase.from('doctors').update(payload).eq('id', editingId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('doctors').insert({
-          ...formData,
+          ...payload,
           is_active: true,
         });
         if (error) throw error;
@@ -87,10 +157,19 @@ export default function DoctorsManager() {
 
       setFormData({
         name: '',
+        department: '',
         specialization: '',
         qualification: '',
         experience_years: 0,
         consultation_fee: 0,
+        bio: '',
+        image_url: '',
+        clinicAddress: '',
+        phone: '',
+        email: '',
+        languages: '',
+        specialServices: '',
+        qualifications: '',
       });
       setShowForm(false);
       setEditingId(null);
@@ -121,10 +200,19 @@ export default function DoctorsManager() {
   const startEdit = (doctor: Doctor) => {
     setFormData({
       name: doctor.name || '',
+      department: doctor.department || '',
       specialization: doctor.specialization || '',
       qualification: doctor.qualification || '',
       experience_years: doctor.experience_years || 0,
       consultation_fee: doctor.consultation_fee || 0,
+      bio: doctor.bio || '',
+      image_url: doctor.image_url || '',
+      clinicAddress: doctor.clinicAddress || '',
+      phone: doctor.phone || '',
+      email: doctor.email || '',
+      languages: (doctor.languages || []).join(', '),
+      specialServices: (doctor.specialServices || []).join(', '),
+      qualifications: (doctor.qualifications || []).join(', '),
     });
     setEditingId(doctor.id);
     setShowForm(true);
@@ -152,6 +240,13 @@ export default function DoctorsManager() {
           />
           <input
             type="text"
+            placeholder="Department"
+            value={formData.department}
+            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="text"
             placeholder="Specialization"
             value={formData.specialization}
             onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
@@ -168,14 +263,80 @@ export default function DoctorsManager() {
             type="number"
             placeholder="Experience (years)"
             value={typeof formData.experience_years === 'number' && Number.isNaN(formData.experience_years) ? '' : formData.experience_years}
-            onChange={(e) => setFormData({ ...formData, experience_years: e.target.value === '' ? '' : parseInt(e.target.value) })}
+            onChange={(e) => setFormData({ ...formData, experience_years: e.target.value === '' ? 0 : parseInt(e.target.value) })}
             className="w-full border border-border rounded px-3 py-2"
           />
           <input
             type="number"
             placeholder="Consultation Fee"
             value={typeof formData.consultation_fee === 'number' && Number.isNaN(formData.consultation_fee) ? '' : formData.consultation_fee}
-            onChange={(e) => setFormData({ ...formData, consultation_fee: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+            onChange={(e) => setFormData({ ...formData, consultation_fee: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Doctor Photo URL"
+            value={formData.image_url}
+            onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <label className="block text-sm font-medium text-slate-700">Upload Photo</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) await uploadDoctorPhoto(file);
+            }}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          {photoUploading && <p className="text-sm text-muted-foreground">Uploading photo...</p>}
+          <textarea
+            placeholder="Doctor Bio"
+            value={formData.bio}
+            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2 min-h-24"
+          />
+          <input
+            type="text"
+            placeholder="Clinic Address"
+            value={formData.clinicAddress}
+            onChange={(e) => setFormData({ ...formData, clinicAddress: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Languages (comma separated)"
+            value={formData.languages}
+            onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Special Services (comma separated)"
+            value={formData.specialServices}
+            onChange={(e) => setFormData({ ...formData, specialServices: e.target.value })}
+            className="w-full border border-border rounded px-3 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Qualifications (comma separated)"
+            value={formData.qualifications}
+            onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
             className="w-full border border-border rounded px-3 py-2"
           />
           <div className="flex gap-2">

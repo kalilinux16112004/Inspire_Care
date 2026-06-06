@@ -79,7 +79,9 @@ export default function ServicesManager() {
     e.preventDefault();
     try {
       const payload = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
         price: formData.price === '' || formData.price == null ? null : Number(formData.price),
         duration_minutes:
           formData.duration_minutes === '' || formData.duration_minutes == null
@@ -93,12 +95,12 @@ export default function ServicesManager() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, payload }),
-        })
+        });
 
-        const result = await res.json()
+        const result = await res.json();
         if (!res.ok) {
-          console.error('[v0] Server update error:', result)
-          throw new Error(result?.error?.message || result?.error || 'Update failed')
+          console.error('[v0] Server update error:', result);
+          throw new Error(result?.error?.message || result?.error || 'Update failed');
         }
       } else {
         const res = await fetch('/api/admin/services', {

@@ -1,130 +1,117 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Star, MapPin, Phone, Mail, Calendar, Clock, Award, Users, BookOpen } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-// Mock doctor data - in production this would come from Supabase
-const doctorsData: any = {
-  '1': {
-    id: 1,
-    name: 'Dr. Rajesh Kumar',
-    department: 'Internal Medicine',
-    specialization: 'Cardiology',
-    experience: 18,
-    qualification: 'MD, DM Cardiology',
-    fee: 1000,
-    rating: 4.9,
-    reviews: 245,
-    description: 'Expert in cardiac care with special interest in interventional cardiology.',
-    bio: 'Dr. Rajesh Kumar is a renowned cardiologist with over 18 years of experience in managing cardiac emergencies and complex cardiac procedures. He has successfully performed over 5000 angiographies and 2000 angioplasties with excellent success rates. His areas of expertise include coronary artery disease, arrhythmias, and heart failure management.',
-    qualifications: ['MD (Internal Medicine) - AIIMS', 'DM (Cardiology) - Delhi University', 'Fellowship in Interventional Cardiology - USA'],
-    certifications: ['FNCS', 'ACLS Certified', 'Fellow of ESC'],
-    availability: {
-      monday: { start: '10:00 AM', end: '5:00 PM' },
-      tuesday: { start: '10:00 AM', end: '5:00 PM' },
-      wednesday: { start: '10:00 AM', end: '5:00 PM' },
-      thursday: { start: '10:00 AM', end: '5:00 PM' },
-      friday: { start: '10:00 AM', end: '5:00 PM' },
-      saturday: 'Closed',
-      sunday: 'Closed',
-    },
-    clinicAddress: 'OPD Building, 2nd Floor, Wing A',
-    phone: '+91-253-2333333 Ext. 201',
-    email: 'rajesh.kumar@teaminspirecare.com',
-    image: '👨‍⚕️',
-    specialServices: [
-      'Cardiac Surgery Consultation',
-      'Stress Test & ECG',
-      'Echocardiography',
-      'Angiography & Angioplasty',
-      'Pacemaker Implantation',
-      'Follow-up Care',
-    ],
-    publications: 12,
-    awardsAndRecognitions: [
-      'Best Cardiologist Award 2022',
-      'Outstanding Medical Service 2021',
-      'Patient Choice Award 2023',
-    ],
-    languages: ['English', 'Hindi', 'Kannada'],
-    testimonials: [
-      {
-        patient: 'Mr. Sharma',
-        rating: 5,
-        text: 'Exceptional care and very patient. Dr. Kumar explained everything in detail. Highly recommended!',
-      },
-      {
-        patient: 'Mrs. Patel',
-        rating: 5,
-        text: 'Best cardiologist I have met. Very professional and caring. Thank you for saving my life.',
-      },
-      {
-        patient: 'Mr. Gupta',
-        rating: 4.5,
-        text: 'Great doctor, very knowledgeable. A bit busy but always gives time to patients.',
-      },
-    ],
-  },
-  '2': {
-    id: 2,
-    name: 'Dr. Priya Sharma',
-    department: 'Gynecology',
-    specialization: 'Obstetrics & Gynecology',
-    experience: 16,
-    qualification: 'MD, DGO',
-    fee: 900,
-    rating: 4.8,
-    reviews: 312,
-    description: 'Specialized in high-risk pregnancies and minimally invasive gynecological procedures.',
-    bio: 'Dr. Priya Sharma is a highly experienced obstetrician and gynecologist with 16 years of expertise in managing complex pregnancies and gynecological conditions. She has delivered over 3000 babies with zero maternal mortality rate.',
-    qualifications: ['MD (Obstetrics & Gynecology)', 'DGO', 'Fellowship in Maternal-Fetal Medicine'],
-    certifications: ['FLS (Fetal Surgery)', 'ACOG Member'],
-    availability: {
-      monday: { start: '11:00 AM', end: '6:00 PM' },
-      wednesday: { start: '11:00 AM', end: '6:00 PM' },
-      friday: { start: '11:00 AM', end: '6:00 PM' },
-      saturday: { start: '11:00 AM', end: '3:00 PM' },
-    },
-    clinicAddress: 'Maternity Ward, Wing B',
-    phone: '+91-253-2333333 Ext. 302',
-    email: 'priya.sharma@teaminspirecare.com',
-    image: '👩‍⚕️',
-    specialServices: [
-      'Antenatal Care',
-      'Safe Delivery Services',
-      'Cesarean Section',
-      'Minimally Invasive Surgery',
-      'Gynecological Procedures',
-      'Fertility Consultation',
-    ],
-    publications: 8,
-    awardsAndRecognitions: [
-      'Best Obstetrician 2023',
-      'Excellence in Maternal Care 2022',
-    ],
-    languages: ['English', 'Hindi', 'Marathi'],
-    testimonials: [
-      {
-        patient: 'Ms. Verma',
-        rating: 5,
-        text: 'Dr. Sharma is amazing! She made my pregnancy journey so comfortable and safe.',
-      },
-      {
-        patient: 'Mrs. Singh',
-        rating: 5,
-        text: 'Very caring and supportive doctor. I felt safe throughout my delivery.',
-      },
-    ],
-  },
-};
+interface Doctor {
+  id: string;
+  name: string;
+  department?: string;
+  specialization?: string;
+  experience_years?: number;
+  experience?: number;
+  qualification?: string;
+  consultation_fee?: number;
+  fee?: number;
+  bio?: string;
+  image_url?: string;
+  image?: string;
+  rating?: number;
+  reviews?: number;
+  availability?: Record<string, any> | string;
+  clinicAddress?: string;
+  phone?: string;
+  email?: string;
+  specialServices?: string[];
+  qualifications?: string[];
+  testimonials?: Array<{ patient: string; rating: number; text: string }>;
+  languages?: string[];
+}
 
 export default function DoctorProfilePage({ params }: { params: { id: string } }) {
-  const doctor = doctorsData[params.id] || doctorsData['1'];
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState('monday');
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('id', params.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setDoctor({
+            id: String(data.id),
+            name: data.name,
+            department: data.department,
+            specialization: data.specialization,
+            experience_years: data.experience_years,
+            experience: data.experience_years || data.experience,
+            qualification: data.qualification,
+            consultation_fee: data.consultation_fee,
+            fee: data.consultation_fee || data.fee,
+            bio: data.bio || data.description,
+            image_url: data.image_url,
+            rating: data.rating || 4.8,
+            reviews: data.reviews || 0,
+            availability: data.availability || { monday: '9:00 AM - 5:00 PM' },
+            clinicAddress: data.clinicAddress || data.clinic_address || '',
+            phone: data.phone || '',
+            email: data.email || '',
+            specialServices: data.specialServices || data.special_services || [],
+            qualifications: data.qualifications || [],
+            testimonials: data.testimonials || [],
+            languages: data.languages || [],
+          });
+        }
+      } catch (error) {
+        console.error('[v0] Error fetching doctor profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctor();
+  }, [params.id, supabase]);
+
+  if (loading) {
+    return (
+      <>
+        <Navigation />
+        <main className="min-h-screen flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-xl font-semibold">Loading doctor profile...</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!doctor) {
+    return (
+      <>
+        <Navigation />
+        <main className="min-h-screen flex items-center justify-center py-20">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold">Doctor not found</h1>
+            <p className="mt-4 text-muted-foreground">The requested profile could not be loaded.</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -144,16 +131,24 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
             <div className="grid md:grid-cols-3 gap-8 items-start">
               {/* Avatar */}
               <div className="text-center md:text-left">
-                <div className="text-9xl mb-6 bg-blue-400 rounded-full w-32 h-32 flex items-center justify-center mx-auto md:mx-0">
-                  {doctor.image}
+                <div className="text-9xl mb-6 bg-blue-400 rounded-full w-32 h-32 flex items-center justify-center overflow-hidden mx-auto md:mx-0">
+                  {doctor.image_url ? (
+                    <img
+                      src={doctor.image_url}
+                      alt={doctor.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    doctor.image || '👨‍⚕️'
+                  )}
                 </div>
               </div>
 
               {/* Info */}
               <div className="md:col-span-2">
                 <h1 className="text-4xl font-bold mb-2">{doctor.name}</h1>
-                <p className="text-blue-100 text-xl mb-1">{doctor.specialization}</p>
-                <p className="text-blue-100 mb-4">{doctor.department}</p>
+                <p className="text-blue-100 text-xl mb-1">{doctor.specialization || 'Specialist'}</p>
+                <p className="text-blue-100 mb-4">{doctor.department || 'General Medicine'}</p>
 
                 {/* Rating */}
                 <div className="flex items-center gap-4 mb-6">
@@ -173,7 +168,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-blue-400/30 p-3 rounded">
                     <div className="font-semibold text-sm">Experience</div>
-                    <div className="text-2xl font-bold">{doctor.experience}+</div>
+                    <div className="text-2xl font-bold">{doctor.experience || doctor.experience_years || 0}+</div>
                     <div className="text-xs text-blue-100">Years</div>
                   </div>
                   <div className="bg-blue-400/30 p-3 rounded">
@@ -199,8 +194,8 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
             <div className="md:col-span-2 space-y-8">
               {/* About */}
               <div className="bg-white p-8 rounded-lg shadow">
-                <h2 className="text-2xl font-bold mb-4">About Dr. {doctor.name.split(' ')[1]}</h2>
-                <p className="text-muted-foreground leading-relaxed mb-4">{doctor.bio}</p>
+                <h2 className="text-2xl font-bold mb-4">About Dr. {doctor.name.split(' ')[1] || doctor.name}</h2>
+                <p className="text-muted-foreground leading-relaxed mb-4">{doctor.bio || 'No profile description is available for this doctor yet.'}</p>
               </div>
 
               {/* Qualifications */}
@@ -210,7 +205,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                   Qualifications
                 </h2>
                 <ul className="space-y-2">
-                  {doctor.qualifications.map((qual: string, i: number) => (
+                  {(doctor.qualifications || []).map((qual: string, i: number) => (
                     <li key={i} className="flex items-center gap-3">
                       <span className="w-2 h-2 bg-primary rounded-full"></span>
                       <span>{qual}</span>
@@ -226,7 +221,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                   Special Services
                 </h2>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {doctor.specialServices.map((service: string, i: number) => (
+                  {(doctor.specialServices || []).map((service: string, i: number) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-secondary rounded-full"></span>
                       <span className="text-sm">{service}</span>
@@ -242,7 +237,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                   Patient Reviews
                 </h2>
                 <div className="space-y-4">
-                  {doctor.testimonials.map((review: any, i: number) => (
+                  {(doctor.testimonials || []).map((review: any, i: number) => (
                     <div key={i} className="border-l-4 border-primary p-4 bg-gray-50 rounded">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">{review.patient}</span>
@@ -272,24 +267,30 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                 </h3>
 
                 <div className="space-y-2 mb-6">
-                  {Object.entries(doctor.availability).map(([day, time]: any) => (
-                    <button
-                      key={day}
-                      onClick={() => setSelectedDay(day)}
-                      className={`w-full text-left p-3 rounded capitalize transition-all ${
-                        selectedDay === day
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
-                      <span className="font-semibold">{day}</span>
-                      {typeof time === 'string' ? (
-                        <p className="text-xs">{time}</p>
-                      ) : (
-                        <p className="text-xs">{time.start} - {time.end}</p>
-                      )}
-                    </button>
-                  ))}
+                  {typeof doctor.availability === 'object' ? (
+                    Object.entries(doctor.availability).map(([day, time]: any) => (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDay(day)}
+                        className={`w-full text-left p-3 rounded capitalize transition-all ${
+                          selectedDay === day
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span className="font-semibold">{day}</span>
+                        {typeof time === 'string' ? (
+                          <p className="text-xs">{time}</p>
+                        ) : (
+                          <p className="text-xs">{time.start} - {time.end}</p>
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-3 rounded bg-gray-100 text-sm">
+                      {doctor.availability}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -336,7 +337,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
               <div className="bg-white p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-4">Languages</h3>
                 <div className="space-y-2">
-                  {doctor.languages.map((lang: string, i: number) => (
+                  {(doctor.languages || []).map((lang: string, i: number) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-primary rounded-full"></span>
                       <span>{lang}</span>

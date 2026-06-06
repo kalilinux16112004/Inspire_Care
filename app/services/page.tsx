@@ -1,99 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Activity, Heart, Brain, Bone, Baby, Wind, Eye, Pill } from 'lucide-react';
+import { Shield, Loader2 } from 'lucide-react';
+
+interface Service {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  price?: number;
+  duration_minutes?: number;
+  is_active?: boolean;
+}
 
 export default function ServicesPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  const services = [
-    {
-      id: 1,
-      category: 'OPD',
-      name: 'General Outpatient Department',
-      icon: Activity,
-      description: 'Comprehensive general medical consultation and treatment for acute and chronic conditions.',
-      details: 'Our experienced general physicians provide consultation for a wide range of health issues including fever, cough, digestive problems, and preventive health check-ups.',
-      features: ['Same-day appointments', '24/7 availability', 'Experienced physicians', 'Modern diagnostic facilities'],
-      pricing: 'Starting at ₹500',
-    },
-    {
-      id: 2,
-      category: 'ICU',
-      name: 'Intensive Care Unit',
-      icon: Heart,
-      description: 'Advanced critical care with state-of-the-art monitoring and life support systems.',
-      details: 'Our 30-bed ICU equipped with modern ventilators, monitors, and experienced critical care specialists for managing critically ill patients.',
-      features: ['24/7 critical care', 'Advanced monitoring', 'Ventilators & support', 'Expert intensivists'],
-      pricing: 'As per patient condition',
-    },
-    {
-      id: 3,
-      category: 'Surgical',
-      name: 'General Surgery',
-      icon: Pill,
-      description: 'Expert surgical care for acute and elective surgical conditions.',
-      details: 'Comprehensive surgical services including general, laparoscopic, and emergency surgery with modern operation theaters.',
-      features: ['Minimally invasive surgery', 'Emergency surgery', 'Modern ORs', 'Expert surgeons'],
-      pricing: 'Variable based on procedure',
-    },
-    {
-      id: 4,
-      category: 'Gynac',
-      name: 'Gynecology & Obstetrics',
-      icon: Heart,
-      description: 'Complete women&apos;s healthcare from routine check-ups to complex obstetric care.',
-      details: 'Expert gynecologists providing antenatal care, normal and cesarean deliveries, and comprehensive women&apos;s health services.',
-      features: ['Antenatal care', 'Safe delivery', 'Neonatal care', 'Fertility services'],
-      pricing: 'Pregnancy package available',
-    },
-    {
-      id: 5,
-      category: 'Ortho',
-      name: 'Orthopedics',
-      icon: Bone,
-      description: 'Treatment for bone, joint, and muscle disorders with modern surgical techniques.',
-      details: 'Our orthopedic department handles fractures, joint replacement, sports injuries, and arthroscopic surgeries.',
-      features: ['Joint replacement', 'Arthroscopy', 'Trauma care', 'Sports medicine'],
-      pricing: 'Consultation: ₹800',
-    },
-    {
-      id: 6,
-      category: 'Paediatric',
-      name: 'Pediatrics',
-      icon: Baby,
-      description: 'Specialized healthcare for infants, children, and adolescents.',
-      details: 'Comprehensive pediatric care including immunization, growth monitoring, and treatment of childhood illnesses.',
-      features: ['Vaccination', 'Growth monitoring', 'Pediatric emergency', 'Neonatal care'],
-      pricing: 'Consultation: ₹600',
-    },
-    {
-      id: 7,
-      category: 'Respiratory',
-      name: 'Respiratory Medicine',
-      icon: Wind,
-      description: 'Expert care for lung and respiratory disorders including asthma and COPD.',
-      details: 'Advanced diagnostic and therapeutic services for respiratory diseases with pulmonary function testing.',
-      features: ['Asthma management', 'Sleep apnea testing', 'Pulmonary function', 'Bronchoscopy'],
-      pricing: 'Consultation: ₹900',
-    },
-    {
-      id: 8,
-      category: 'General',
-      name: 'Neurology',
-      icon: Brain,
-      description: 'Specialized care for neurological disorders and brain health.',
-      details: 'Comprehensive neurology services including management of epilepsy, stroke, and neurodegenerative diseases.',
-      features: ['Stroke management', 'Epilepsy care', 'EEG testing', 'Neurorehabilitation'],
-      pricing: 'Consultation: ₹1000',
-    },
-  ];
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('services')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
 
-  const categories = ['all', 'OPD', 'ICU', 'Surgical', 'Gynac', 'Ortho', 'Paediatric', 'Respiratory', 'General'];
+        if (error) throw error;
+        setServices(
+          (data || []).map((service: any) => ({
+            id: String(service.id),
+            name: service.name,
+            description: service.description,
+            category: service.category,
+            price: service.price,
+            duration_minutes: service.duration_minutes,
+            is_active: service.is_active,
+          }))
+        );
+      } catch (error) {
+        console.error('[v0] Error fetching services:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, [supabase]);
+
+  const categories = ['all', ...new Set(services.map((service) => service.category || 'General'))];
 
   const filteredServices = selectedCategory === 'all'
     ? services
@@ -104,9 +66,17 @@ export default function ServicesPage() {
       <Navigation />
       <main>
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Services' }]} />
+        {loading ? (
+          <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+            <div className="max-w-6xl mx-auto text-center">
+              <Loader2 className="mx-auto mb-6 w-8 h-8 animate-spin text-primary" />
+              <p className="text-lg text-slate-700">Loading services...</p>
+            </div>
+          </section>
+        ) : null}
 
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-blue-50 to-green-50 py-16 px-4 sm:px-6 lg:px-8">
+        <section className="bg-linear-to-r from-blue-50 to-green-50 py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">Comprehensive Healthcare Services</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -141,53 +111,32 @@ export default function ServicesPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredServices.map(service => {
-                const Icon = service.icon;
-                return (
-                  <div
-                    key={service.id}
-                    className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
-                  >
-                    <div className="bg-gradient-to-r from-blue-500 to-green-500 p-6 text-white">
-                      <Icon className="w-12 h-12 mb-4" />
-                      <h3 className="text-2xl font-bold">{service.name}</h3>
+              {filteredServices.map((service) => (
+                <div
+                  key={service.id}
+                  className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+                >
+                  <div className="bg-linear-to-r from-blue-500 to-green-500 p-6 text-white">
+                    <Shield className="w-12 h-12 mb-4" />
+                    <h3 className="text-2xl font-bold">{service.name}</h3>
+                  </div>
+                  <div className="p-6">
+                    <p className="text-muted-foreground mb-4">{service.description || 'Comprehensive service details will be available soon.'}</p>
+                    <div className="mb-4">
+                      <p className="font-semibold text-sm mb-2">Category</p>
+                      <p className="text-slate-600 text-sm">{service.category || 'General'}</p>
                     </div>
-                    <div className="p-6">
-                      <p className="text-muted-foreground mb-4">{service.description}</p>
-                      <details className="mb-4">
-                        <summary className="font-semibold cursor-pointer text-primary hover:text-blue-700">
-                          Learn more
-                        </summary>
-                        <p className="text-muted-foreground mt-3 text-sm">{service.details}</p>
-                      </details>
-                      <div className="mb-4">
-                        <p className="font-semibold text-sm mb-2">Key Features:</p>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          {service.features.map((feature, idx) => (
-                            <li key={idx} className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="border-t pt-4 flex items-center justify-between">
-                        <span className="font-semibold text-primary">{service.pricing}</span>
-                        <Link
-                          href="/"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            document.getElementById('appointment-booking')?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                          className="text-primary font-semibold hover:underline text-sm"
-                        >
-                          Book Now →
-                        </Link>
-                      </div>
+                    <div className="border-t pt-4 flex items-center justify-between">
+                      <span className="font-semibold text-primary">
+                        {service.price != null ? `₹${service.price.toFixed(0)}` : 'Price on request'}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        {service.duration_minutes ? `${service.duration_minutes} mins` : 'Duration varies'}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         </section>
