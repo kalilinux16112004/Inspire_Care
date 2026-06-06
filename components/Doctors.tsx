@@ -15,12 +15,32 @@ interface Doctor {
   image_url: string;
   consultation_fee: number;
   bio: string;
+  availability?: string;
 }
 
 export default function Doctors() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+
+  const parseAvailability = (availabilityStr?: string) => {
+    if (!availabilityStr) return [];
+    try {
+      const availability = JSON.parse(availabilityStr);
+      const availableDays: Array<{ day: string; time: string }> = [];
+      Object.entries(availability).forEach(([day, schedule]: any) => {
+        if (schedule.enabled && schedule.start && schedule.end) {
+          availableDays.push({
+            day: day.substring(0, 3),
+            time: `${schedule.start} - ${schedule.end}`,
+          });
+        }
+      });
+      return availableDays;
+    } catch (e) {
+      return [];
+    }
+  };
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -110,6 +130,21 @@ export default function Doctors() {
                       <p className="text-xs text-slate-600 font-medium">
                         {doctor.experience_years}+ years experience
                       </p>
+                    )}
+
+                    {/* Availability Schedule */}
+                    {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
+                      <div className="pt-2 border-t border-slate-200">
+                        <p className="text-xs font-semibold text-slate-700 mb-2">Available:</p>
+                        <div className="space-y-1 max-h-24 overflow-y-auto">
+                          {parseAvailability(doctor.availability).map((schedule, idx) => (
+                            <div key={idx} className="text-xs text-slate-600 flex justify-between gap-2">
+                              <span className="font-medium">{schedule.day}:</span>
+                              <span className="text-right">{schedule.time}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

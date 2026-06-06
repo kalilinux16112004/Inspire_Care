@@ -30,6 +30,24 @@ export default function DoctorsManager() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const supabase = createClient();
 
+  const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  interface AvailabilitySchedule {
+    [key: string]: {
+      enabled: boolean;
+      start?: string;
+      end?: string;
+    };
+  }
+
+  const initializeEmptySchedule = (): AvailabilitySchedule => {
+    const schedule: AvailabilitySchedule = {};
+    DAYS_OF_WEEK.forEach((day) => {
+      schedule[day] = { enabled: false, start: '09:00', end: '17:00' };
+    });
+    return schedule;
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     specialization: '',
@@ -39,9 +57,7 @@ export default function DoctorsManager() {
     image_url: '',
     specialServices: '',
     phone: '',
-    availabilityDays: '',
-    availabilityStartTime: '',
-    availabilityEndTime: '',
+    availability: initializeEmptySchedule(),
   });
 
   useEffect(() => {
@@ -129,10 +145,7 @@ export default function DoctorsManager() {
           .map((item) => item.trim())
           .filter(Boolean),
         phone: formData.phone || '',
-        availability:
-          formData.availabilityDays && formData.availabilityStartTime && formData.availabilityEndTime
-            ? `${formData.availabilityDays} ${formData.availabilityStartTime} - ${formData.availabilityEndTime}`
-            : '',
+        availability: JSON.stringify(formData.availability),
       };
 
       // Only include image_url if it's provided
@@ -169,9 +182,7 @@ export default function DoctorsManager() {
         image_url: '',
         specialServices: '',
         phone: '',
-        availabilityDays: '',
-        availabilityStartTime: '',
-        availabilityEndTime: '',
+        availability: initializeEmptySchedule(),
       });
       setShowForm(false);
       setEditingId(null);
@@ -207,18 +218,14 @@ export default function DoctorsManager() {
   const cancelDelete = () => setDeletingId(null);
 
   const startEdit = (doctor: Doctor) => {
-    // Parse availability string back into separate fields
-    // Format: "Mon-Fri 09:00 - 17:00" or "Mon, Wed, Fri 09:00 - 17:00"
-    let days = '';
-    let startTime = '';
-    let endTime = '';
-
+    // Parse availability JSON back into the schedule format
+    let schedule = initializeEmptySchedule();
     if (doctor.availability) {
-      const match = doctor.availability.match(/^(.+?)\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/);
-      if (match) {
-        days = match[1];
-        startTime = match[2];
-        endTime = match[3];
+      try {
+        const parsed = JSON.parse(doctor.availability);
+        schedule = parsed;
+      } catch (e) {
+        console.error('[v0] Error parsing availability:', e);
       }
     }
 
@@ -231,9 +238,7 @@ export default function DoctorsManager() {
       image_url: doctor.image_url || '',
       specialServices: (doctor.specialServices || []).join(', '),
       phone: doctor.phone || '',
-      availabilityDays: days,
-      availabilityStartTime: startTime,
-      availabilityEndTime: endTime,
+      availability: schedule,
     });
     setEditingId(doctor.id);
     setShowForm(true);
@@ -369,40 +374,92 @@ export default function DoctorsManager() {
             />
           </div>
 
-          {/* Availability Field */}
+          {/* Availability Field - Day by Day */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Availability</label>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Days</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Mon-Fri or Mon, Wed, Fri"
-                  value={formData.availabilityDays}
-                  onChange={(e) => setFormData({ ...formData, availabilityDays: e.target.value })}
-                  className="w-full border border-blue-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    value={formData.availabilityStartTime}
-                    onChange={(e) => setFormData({ ...formData, availabilityStartTime: e.target.value })}
-                    className="w-full border border-blue-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
+            <label className="block text-sm font-semibold text-slate-700 mb-4">Availability Schedule</label>
+            <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+              {DAYS_OF_WEEK.map((day) => (
+                <div key={day} className="flex items-center gap-4 bg-white p-3 rounded-lg border border-blue-100">
+                  {/* Day Checkbox */}
+                  <div className="flex items-center gap-2 min-w-fit">
+                    <input
+                      type="checkbox"
+                      id={`available-${day}`}
+                      checked={formData.availability[day]?.enabled || false}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          availability: {
+                            ...formData.availability,
+                            [day]: {
+                              ...formData.availability[day],
+                              enabled: e.target.checked,
+                            },
+                          },
+                        })
+                      }
+                      className="w-4 h-4 rounded border-blue-300 cursor-pointer"
+                    />
+                    <label htmlFor={`available-${day}`} className="font-semibold text-slate-700 min-w-fit cursor-pointer">
+                      {day}
+                    </label>
+                  </div>
+
+                  {/* Time Inputs - Only show if day is enabled */}
+                  {formData.availability[day]?.enabled && (
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex-1">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={formData.availability[day]?.start || '09:00'}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              availability: {
+                                ...formData.availability,
+                                [day]: {
+                                  ...formData.availability[day],
+                                  start: e.target.value,
+                                },
+                              },
+                            })
+                          }
+                          className="w-full border border-blue-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <span className="text-slate-500 font-semibold mt-4">→</span>
+                      <div className="flex-1">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          value={formData.availability[day]?.end || '17:00'}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              availability: {
+                                ...formData.availability,
+                                [day]: {
+                                  ...formData.availability[day],
+                                  end: e.target.value,
+                                },
+                              },
+                            })
+                          }
+                          className="w-full border border-blue-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Not Available Badge */}
+                  {!formData.availability[day]?.enabled && (
+                    <div className="flex-1 text-center text-slate-400 text-sm font-medium">
+                      Not Available
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">End Time</label>
-                  <input
-                    type="time"
-                    value={formData.availabilityEndTime}
-                    onChange={(e) => setFormData({ ...formData, availabilityEndTime: e.target.value })}
-                    className="w-full border border-blue-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -430,6 +487,7 @@ export default function DoctorsManager() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-border">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold">Specialization</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold">Qualification</th>
@@ -440,6 +498,15 @@ export default function DoctorsManager() {
               <tbody className="divide-y divide-border">
                 {doctors.map((doctor) => (
                   <tr key={doctor.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      {doctor.image_url ? (
+                        <img src={doctor.image_url} alt={doctor.name} className="w-12 h-12 rounded object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                          <span className="text-xs text-gray-500">No img</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-medium">{doctor.name}</td>
                     <td className="px-6 py-4">{doctor.specialization}</td>
                     <td className="px-6 py-4">{doctor.qualification}</td>

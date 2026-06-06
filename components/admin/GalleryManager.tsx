@@ -84,7 +84,8 @@ export default function GalleryManager() {
       return;
     }
 
-    if (!formData.file) {
+    // Only require file when adding new item, not when editing
+    if (!editingId && !formData.file) {
       setUploadMessage({ type: 'error', text: 'Please select an image file' });
       return;
     }
@@ -201,6 +202,8 @@ export default function GalleryManager() {
 
       {showForm && (
         <form onSubmit={handleAddItem} className="bg-white border border-border rounded-lg p-6 space-y-4">
+          <h3 className="text-lg font-semibold">{editingId ? 'Edit Gallery Item' : 'Add Gallery Item'}</h3>
+          
           {uploadMessage && (
             <div
               className={`p-3 rounded-lg text-sm ${
@@ -230,7 +233,10 @@ export default function GalleryManager() {
           />
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Image File (JPG, PNG, WebP - Max 5MB)</label>
+            <label className="block text-sm font-medium">
+              Image File (JPG, PNG, WebP - Max 5MB)
+              {editingId && <span className="text-xs text-muted-foreground ml-2">Optional - leave empty to keep current image</span>}
+            </label>
             <div className="flex items-center gap-4">
               <label className="flex-1 border-2 border-dashed border-border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition">
                 <div className="flex items-center justify-center gap-2">
@@ -244,7 +250,7 @@ export default function GalleryManager() {
                   accept="image/jpeg,image/png,image/webp,image/jpg"
                   onChange={handleFileChange}
                   className="hidden"
-                  required
+                  required={!editingId}
                 />
               </label>
               {formData.previewUrl && (
@@ -272,10 +278,10 @@ export default function GalleryManager() {
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  {editingId ? 'Updating...' : 'Uploading...'}
                 </>
               ) : (
-                'Save'
+                editingId ? 'Update' : 'Add'
               )}
             </Button>
             <Button
@@ -283,6 +289,7 @@ export default function GalleryManager() {
               variant="outline"
               onClick={() => {
                 setShowForm(false);
+                setEditingId(null);
                 setFormData({ title: '', description: '', file: null, category: '', previewUrl: '' });
                 setUploadMessage(null);
               }}

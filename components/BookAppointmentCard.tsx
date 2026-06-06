@@ -10,47 +10,64 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
   const [form, setForm] = useState({
     patientName: '',
     phone: '',
-    department: defaultDepartment || '',
+    email: '',
     preferredDate: '',
-    patientEmail: '',
     preferredTime: '',
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Predefined time slots
+  const timeSlots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']
+
+  const getDayOfWeek = (dateString: string): string => {
+    const date = new Date(dateString + 'T00:00:00')
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    return days[date.getDay()]
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setForm((s) => ({ ...s, [name]: value }))
+  }
+
+  const handleTimeSlotClick = (slot: string) => {
+    setForm((s) => ({ ...s, preferredTime: slot }))
   }
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
     setMessage(null)
-    if (!form.patientName || !form.phone || !form.department || !form.preferredDate || !form.patientEmail) {
+    if (!form.patientName || !form.phone || !form.email || !form.preferredDate || !form.preferredTime) {
       setMessage('Please fill in all fields')
       return
     }
 
     setLoading(true)
     try {
-      const { error } = await supabase.from('appointments').insert({
-        patient_name: form.patientName,
-        patient_email: form.patientEmail,
-        patient_phone: form.phone,
-        department: form.department,
-        appointment_date: form.preferredDate,
-        appointment_time: form.preferredTime || null,
-        status: 'pending',
-      })
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert({
+          patient_name: form.patientName,
+          patient_email: form.email,
+          patient_phone: form.phone,
+          appointment_date: form.preferredDate,
+          appointment_time: form.preferredTime,
+          status: 'pending',
+        })
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error.message, error.code, error.details)
+        throw new Error(error.message || 'Failed to create appointment')
+      }
 
       setMessage('Appointment request submitted — we will contact you to confirm.')
-      setForm({ patientName: '', phone: '', department: defaultDepartment || '', preferredDate: '', patientEmail: '', preferredTime: '' })
-    } catch (err) {
-      console.error('[v0] Error submitting appointment:', err)
-      setMessage('Failed to submit appointment. Please try again.')
+      setForm({ patientName: '', phone: '', email: '', preferredDate: '', preferredTime: '' })
+    } catch (err: any) {
+      console.error('Error submitting appointment:', err.message || err)
+      setMessage(err.message || 'Failed to submit appointment. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -63,49 +80,85 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Patient Name</label>
-          <Input name="patientName" value={form.patientName} onChange={handleChange} placeholder="Full name" />
+          <Input 
+            name="patientName" 
+            value={form.patientName} 
+            onChange={handleChange} 
+            placeholder="Full name" 
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Phone Number</label>
-          <Input name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="Mobile number" />
+          <Input 
+            name="phone" 
+            type="tel" 
+            value={form.phone} 
+            onChange={handleChange} 
+            placeholder="Mobile number" 
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Department</label>
-          <select name="department" value={form.department} onChange={handleChange} className="w-full border border-border rounded-lg p-2">
-            <option value="">Select department</option>
-            <option>General</option>
-            <option>Cardiology</option>
-            <option>Dermatology</option>
-            <option>Pediatrics</option>
-            <option>Orthopedics</option>
-          </select>
+          <label className="block text-sm font-medium mb-1">Email Address</label>
+          <Input 
+            name="email" 
+            type="email" 
+            value={form.email} 
+            onChange={handleChange} 
+            placeholder="your@email.com" 
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Preferred Date</label>
-          <Input name="preferredDate" type="date" value={form.preferredDate} onChange={handleChange} />
+          <Input 
+            name="preferredDate" 
+            type="date" 
+            value={form.preferredDate} 
+            onChange={handleChange}
+            min={new Date().toISOString().split('T')[0]}
+          />
+          {form.preferredDate && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDayOfWeek(form.preferredDate)}
+            </p>
+          )}
         </div>
-
-        {/* <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Preferred Time</label>
-            <Input name="preferredTime" type="time" value={form.preferredTime} onChange={handleChange} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <Input name="patientEmail" type="email" value={form.patientEmail} onChange={handleChange} placeholder="you@example.com" />
-          </div>
-        </div> */}
-
-        {message && <p className="text-sm text-center text-muted-foreground">{message}</p>}
 
         <div>
-          <Button type="submit" className="w-full bg-primary" disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit'}
-          </Button>
+          <label className="block text-sm font-medium mb-2">Preferred Time Slot</label>
+          <div className="grid grid-cols-3 gap-2">
+            {timeSlots.map((slot) => (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => handleTimeSlotClick(slot)}
+                className={`p-2 rounded-lg border transition-all text-sm font-medium ${
+                  form.preferredTime === slot
+                    ? 'bg-primary text-white border-primary'
+                    : 'border-border hover:border-primary hover:bg-gray-50'
+                }`}
+              >
+                {slot}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {message && (
+          <p className={`text-sm text-center ${message.includes('submitted') ? 'text-green-600' : 'text-red-600'}`}>
+            {message}
+          </p>
+        )}
+
+        <Button 
+          type="submit" 
+          className="w-full bg-primary" 
+          disabled={loading || !form.preferredTime || !form.patientName || !form.phone || !form.email}
+        >
+          {loading ? 'Submitting...' : 'Submit'}
+        </Button>
       </form>
     </div>
   )

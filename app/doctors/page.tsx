@@ -15,6 +15,7 @@ interface Doctor {
   experience_years?: number;
   bio?: string;
   image_url?: string;
+  availability?: string;
   is_active?: boolean;
 }
 
@@ -24,6 +25,26 @@ export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+
+  const parseAvailability = (availabilityStr?: string) => {
+    if (!availabilityStr) return [];
+    try {
+      const availability = JSON.parse(availabilityStr);
+      const availableDays: Array<{ day: string; fullDay: string; time: string }> = [];
+      Object.entries(availability).forEach(([day, schedule]: any) => {
+        if (schedule.enabled && schedule.start && schedule.end) {
+          availableDays.push({
+            day: day.substring(0, 3),
+            fullDay: day,
+            time: `${schedule.start} - ${schedule.end}`,
+          });
+        }
+      });
+      return availableDays;
+    } catch (e) {
+      return [];
+    }
+  };
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -44,6 +65,7 @@ export default function DoctorsPage() {
           experience_years: doctor.experience_years || 0,
           bio: doctor.bio || '',
           image_url: doctor.image_url || undefined,
+          availability: doctor.availability || '',
           is_active: doctor.is_active,
         }));
 
@@ -175,6 +197,21 @@ export default function DoctorsPage() {
                         <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
                           {doctor.bio}
                         </p>
+                      )}
+
+                      {/* Availability Schedule */}
+                      {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
+                        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-xs font-semibold text-slate-700 mb-2">Available Days:</p>
+                          <div className="space-y-1 max-h-20 overflow-y-auto">
+                            {parseAvailability(doctor.availability).map((schedule, idx) => (
+                              <div key={idx} className="text-xs text-slate-600 flex justify-between gap-2">
+                                <span className="font-medium min-w-fit">{schedule.fullDay}:</span>
+                                <span className="text-right">{schedule.time}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
 
                       {/* Footer Link */}

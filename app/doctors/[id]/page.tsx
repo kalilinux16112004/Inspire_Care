@@ -39,6 +39,25 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
   const resolvedParams = use(params as any) as { id: string };
   const docId = resolvedParams?.id;
 
+  const parseAvailability = (availabilityStr?: string) => {
+    if (!availabilityStr) return [];
+    try {
+      const availability = JSON.parse(availabilityStr);
+      const availableDays: Array<{ day: string; time: string }> = [];
+      Object.entries(availability).forEach(([day, schedule]: any) => {
+        if (schedule.enabled && schedule.start && schedule.end) {
+          availableDays.push({
+            day,
+            time: `${schedule.start} - ${schedule.end}`,
+          });
+        }
+      });
+      return availableDays;
+    } catch (e) {
+      return [];
+    }
+  };
+
   useEffect(() => {
     const fetchDoctor = async () => {
       try {
@@ -172,13 +191,20 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
             {/* Right Column - Booking */}
             <div className="space-y-6">
               {/* Availability */}
-              {doctor.availability && (
+              {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
                 <div className="bg-white p-6 rounded-lg shadow-lg">
                   <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-primary" />
-                    Availability
+                    Availability Schedule
                   </h3>
-                  <p className="text-gray-700 text-sm">{doctor.availability}</p>
+                  <div className="space-y-2">
+                    {parseAvailability(doctor.availability).map((schedule, idx) => (
+                      <div key={idx} className="flex justify-between items-center pb-2 border-b border-gray-100 last:border-b-0">
+                        <span className="font-semibold text-gray-700">{schedule.day}</span>
+                        <span className="text-primary font-medium">{schedule.time}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

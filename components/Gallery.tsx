@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface GalleryItem {
   id: string;
@@ -28,8 +30,8 @@ export default function Gallery() {
           .from('gallery')
           .select('*')
           .eq('is_active', true)
-          .order('display_order')
-          .limit(6);
+          .order('created_at', { ascending: false })
+          .limit(3);
 
         if (error) throw error;
         setItems(data || []);
@@ -97,6 +99,16 @@ export default function Gallery() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* View All Button */}
+            <div className="mt-12 text-center">
+              <Link href="/gallery">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8">
+                  View All Gallery
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </div>
 
             {/* Lightbox Modal */}
