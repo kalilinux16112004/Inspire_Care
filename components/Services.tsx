@@ -11,9 +11,8 @@ interface Service {
   name: string;
   description: string;
   category: string;
-  price: number;
-  duration_minutes: number;
-  department_id: string;
+  image_url?: string;
+  is_active?: boolean;
 }
 
 export default function Services() {
@@ -28,7 +27,8 @@ export default function Services() {
           .from('services')
           .select('*')
           .eq('is_active', true)
-          .order('name');
+          .order('created_at', { ascending: false })
+          .limit(3);
 
         if (error) throw error;
         setServices(data || []);
@@ -69,47 +69,45 @@ export default function Services() {
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-slate-50 border border-slate-200 rounded-lg p-5 hover:border-primary/30 hover:shadow-md transition-all duration-300 group"
+                  className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-300 group"
                 >
-                  {/* Icon */}
-                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                    <Shield className="w-4 h-4 text-primary" />
-                  </div>
+                  {/* Image */}
+                  {service.image_url ? (
+                    <img
+                      src={service.image_url}
+                      alt={service.name}
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                      <Shield className="w-12 h-12 text-white opacity-40" />
+                    </div>
+                  )}
 
                   {/* Content */}
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">
-                    {service.name}
-                  </h3>
-                  
-                  {service.category && (
-                    <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
-                      {service.category}
-                    </span>
-                  )}
-                  
-                  {service.description && (
-                    <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
-                      {service.description}
-                    </p>
-                  )}
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      {service.name}
+                    </h3>
+                    
+                    {service.category && (
+                      <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
+                        {service.category}
+                      </span>
+                    )}
+                    
+                    {service.description && (
+                      <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-3">
+                        {service.description}
+                      </p>
+                    )}
 
-                  {/* Footer */}
-                  <div className="pt-3 border-t border-slate-200 flex items-end justify-between">
-                    <div>
-                      {service.price && (
-                        <p className="text-lg md:text-xl font-bold text-primary">
-                          ₹{service.price?.toFixed(0)}
-                        </p>
-                      )}
-                      {service.duration_minutes && (
-                        <p className="text-xs text-slate-600 mt-0.5">
-                          {service.duration_minutes} mins
-                        </p>
-                      )}
+                    {/* Footer */}
+                    <div className="pt-3 border-t border-slate-200 flex justify-end">
+                      <Link href="/services" className="text-primary hover:text-primary/80 font-semibold text-sm flex items-center gap-1">
+                        Learn More →
+                      </Link>
                     </div>
-                    <Link href="/services" className="text-primary hover:text-primary/80 font-semibold text-xs">
-                      Learn →
-                    </Link>
                   </div>
                 </div>
               ))}

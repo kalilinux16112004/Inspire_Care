@@ -29,8 +29,8 @@ export default function Doctors() {
           .from('doctors')
           .select('*')
           .eq('is_active', true)
-          .order('name')
-          .limit(6);
+          .order('created_at', { ascending: false })
+          .limit(3);
 
         if (error) throw error;
         setDoctors(data || []);
@@ -111,21 +111,6 @@ export default function Doctors() {
                         {doctor.experience_years}+ years experience
                       </p>
                     )}
-
-                    {/* Consultation Fee */}
-                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-bold text-primary">
-                          ₹{doctor.consultation_fee?.toFixed(0) || 'Call'}
-                        </p>
-                      </div>
-                      <Link href={`/doctors/${doctor.id}`}>
-                        <Button size="sm" className="bg-primary hover:bg-primary/90 h-8 text-xs">
-                          Book
-                          <ArrowRight className="w-3 h-3 ml-1" />
-                        </Button>
-                      </Link>
-                    </div>
                   </div>
                 </div>
               ))}

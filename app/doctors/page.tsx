@@ -5,27 +5,17 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Star } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Doctor {
   id: string;
   name: string;
-  department?: string;
   specialization?: string;
+  qualification?: string;
   experience_years?: number;
-  experience?: number;
-  consultation_fee?: number;
-  fee?: number;
-  rating?: number;
-  reviews?: number;
   bio?: string;
   image_url?: string;
-  image?: string;
-  description?: string;
-  qualification?: string;
-  availability?: string;
-  timing?: string;
+  is_active?: boolean;
 }
 
 export default function DoctorsPage() {
@@ -49,20 +39,12 @@ export default function DoctorsPage() {
         const mappedDoctors = (data || []).map((doctor: any) => ({
           id: String(doctor.id),
           name: doctor.name,
-          department: doctor.department || doctor.specialization || 'General',
-          specialization: doctor.specialization || doctor.department || 'General Practice',
-          experience: doctor.experience_years || doctor.experience || 0,
-          consultation_fee: doctor.consultation_fee || doctor.fee || 0,
-          fee: doctor.consultation_fee || doctor.fee || 0,
-          rating: doctor.rating || 4.8,
-          reviews: doctor.reviews || 0,
-          bio: doctor.bio || doctor.description || '',
-          image_url: doctor.image_url || undefined,
-          image: doctor.image_url ? undefined : '👨‍⚕️',
-          description: doctor.description || doctor.bio || 'Experienced specialist committed to exceptional care.',
+          specialization: doctor.specialization || '',
           qualification: doctor.qualification || '',
-          availability: typeof doctor.availability === 'string' ? doctor.availability : 'Mon-Fri 9:00 AM - 5:00 PM',
-          timing: doctor.timing || '',
+          experience_years: doctor.experience_years || 0,
+          bio: doctor.bio || '',
+          image_url: doctor.image_url || undefined,
+          is_active: doctor.is_active,
         }));
 
         setDoctors(mappedDoctors);
@@ -76,11 +58,10 @@ export default function DoctorsPage() {
     fetchDoctors();
   }, [supabase]);
 
-  const departments = ['all', ...new Set(doctors.map(d => d.department || d.specialization || 'General'))];
+  const departments = ['all', ...new Set(doctors.map(d => d.specialization || 'General'))];
 
   const filtered = doctors.filter((doctor) => {
-    const dept = doctor.department || doctor.specialization || '';
-    const matchDept = selectedDept === 'all' || dept === selectedDept;
+    const matchDept = selectedDept === 'all' || doctor.specialization === selectedDept;
     const matchSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (doctor.specialization || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchDept && matchSearch;
@@ -150,66 +131,63 @@ export default function DoctorsPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
           <div className="max-w-6xl mx-auto">
             {filtered.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.map(doctor => (
-                  <div key={doctor.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all cursor-pointer h-full overflow-hidden group">
-                      {/* Avatar */}
-                      <div className="bg-gradient-to-r from-blue-400 to-blue-600 p-8 text-center text-6xl">
-                        {doctor.image}
+                  <div key={doctor.id} className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-300 group">
+                    {/* Doctor Image */}
+                    {doctor.image_url ? (
+                      <img
+                        src={doctor.image_url}
+                        alt={doctor.name}
+                        className="w-full h-40 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                        <span className="text-6xl">👨‍⚕️</span>
                       </div>
-                      {/* Content */}
-                      <div className="p-6">
-                        <h3 className="text-2xl font-bold text-foreground mb-1">{doctor.name}</h3>
-                        <p className="text-primary font-semibold mb-2">{doctor.specialization}</p>
-                        <p className="text-sm text-muted-foreground mb-4">{doctor.department}</p>
+                    )}
 
-                        {/* Rating */}
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${i < Math.floor(doctor.rating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm font-semibold">{doctor.rating}</span>
-                          <span className="text-xs text-muted-foreground">({doctor.reviews})</span>
-                        </div>
+                    {/* Doctor Info */}
+                    <div className="p-5">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">
+                        {doctor.name}
+                      </h3>
 
-                        <p className="text-sm text-muted-foreground mb-4">{doctor.description}</p>
+                      {doctor.specialization && (
+                        <p className="text-primary font-semibold text-xs mb-2">
+                          {doctor.specialization}
+                        </p>
+                      )}
 
-                        {/* Details */}
-                        <div className="space-y-3 mb-4 pb-4 border-b border-gray-200">
-                          <div className="text-sm">
-                            <p className="font-semibold text-gray-700">Experience</p>
-                            <p className="text-muted-foreground">{doctor.experience} years</p>
-                          </div>
-                          <div className="text-sm">
-                            <p className="font-semibold text-gray-700">Qualification</p>
-                            <p className="text-muted-foreground">{doctor.qualification || 'N/A'}</p>
-                          </div>
-                          <div className="text-sm">
-                            <p className="font-semibold text-gray-700">Availability</p>
-                            <p className="text-muted-foreground text-xs">{doctor.availability}</p>
-                            {doctor.timing && (
-                              <p className="text-muted-foreground text-xs">{doctor.timing}</p>
-                            )}
-                          </div>
-                        </div>
+                      {doctor.qualification && (
+                        <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
+                          {doctor.qualification}
+                        </span>
+                      )}
 
-                        {/* Footer */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-primary">₹{doctor.fee}</span>
-                          <Link
-                            href={`/doctors/${doctor.id}`}
-                            className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
-                          >
-                            read more →
-                          </Link>
-                        </div>
+                      {doctor.experience_years && (
+                        <p className="text-xs text-slate-600 font-medium mb-3">
+                          {doctor.experience_years}+ years experience
+                        </p>
+                      )}
+
+                      {doctor.bio && (
+                        <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
+                          {doctor.bio}
+                        </p>
+                      )}
+
+                      {/* Footer Link */}
+                      <div className="pt-3 border-t border-slate-200 flex justify-end">
+                        <Link
+                          href={`/doctors/${doctor.id}`}
+                          className="text-primary hover:text-primary/80 font-semibold text-sm flex items-center gap-1"
+                        >
+                          read more →
+                        </Link>
                       </div>
                     </div>
+                  </div>
                 ))}
               </div>
             ) : (

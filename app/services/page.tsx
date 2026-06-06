@@ -13,8 +13,7 @@ interface Service {
   name: string;
   description?: string;
   category?: string;
-  price?: number;
-  duration_minutes?: number;
+  image_url?: string;
   is_active?: boolean;
 }
 
@@ -40,8 +39,7 @@ export default function ServicesPage() {
             name: service.name,
             description: service.description,
             category: service.category,
-            price: service.price,
-            duration_minutes: service.duration_minutes,
+            image_url: service.image_url,
             is_active: service.is_active,
           }))
         );
@@ -110,30 +108,42 @@ export default function ServicesPage() {
         {/* Services Grid */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
           <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredServices.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+                  className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-300 group"
                 >
-                  <div className="bg-linear-to-r from-blue-500 to-green-500 p-6 text-white">
-                    <Shield className="w-12 h-12 mb-4" />
-                    <h3 className="text-2xl font-bold">{service.name}</h3>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-muted-foreground mb-4">{service.description || 'Comprehensive service details will be available soon.'}</p>
-                    <div className="mb-4">
-                      <p className="font-semibold text-sm mb-2">Category</p>
-                      <p className="text-slate-600 text-sm">{service.category || 'General'}</p>
+                  {/* Image */}
+                  {service.image_url ? (
+                    <img
+                      src={service.image_url}
+                      alt={service.name}
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                      <Shield className="w-12 h-12 text-white opacity-40" />
                     </div>
-                    <div className="border-t pt-4 flex items-center justify-between">
-                      <span className="font-semibold text-primary">
-                        {service.price != null ? `₹${service.price.toFixed(0)}` : 'Price on request'}
+                  )}
+
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      {service.name}
+                    </h3>
+                    
+                    {service.category && (
+                      <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
+                        {service.category}
                       </span>
-                      <span className="text-muted-foreground text-sm">
-                        {service.duration_minutes ? `${service.duration_minutes} mins` : 'Duration varies'}
-                      </span>
-                    </div>
+                    )}
+                    
+                    {service.description && (
+                      <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-3">
+                        {service.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

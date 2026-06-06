@@ -4,16 +4,30 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import ConfirmDialog from './ConfirmDialog';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit2 } from 'lucide-react';
+
+const DEPARTMENTS = [
+  'General',
+  'Pediatrics',
+  'Orthopedics',
+  'Cardiology',
+  'Gynecology',
+  'Surgical Service',
+  'Dermatology',
+  'ENT',
+  'Physiotherapy',
+  'Laboratory Services',
+  'Emergency Care',
+  'Other'
+];
 
 interface Service {
   id: string;
   name: string;
   description: string;
   category: string;
-  price: number;
-  duration_minutes: number;
-  is_active: boolean;
+  image_url?: string;
+  is_active?: boolean;
 }
 
 export default function ServicesManager() {
@@ -22,20 +36,15 @@ export default function ServicesManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const supabase = createClient();
 
-  const [formData, setFormData] = useState<{
-    name: string;
-    description: string;
-    category: string;
-    price: number | string;
-    duration_minutes: number | string;
-  }>({
+  const [formData, setFormData] = useState({
     name: '',
     description: '',
     category: '',
-    price: 0,
-    duration_minutes: 30,
+    image_url: '',
+    otherCategory: '',
   });
 
   useEffect(() => {
@@ -75,20 +84,55 @@ export default function ServicesManager() {
     }
   };
 
+  const uploadServiceImage = async (file: File) => {
+    setImageUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `service-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('gallery')
+        .upload(`services/${fileName}`, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('gallery')
+        .getPublicUrl(`services/${fileName}`);
+
+      if (data) {
+        setFormData({ ...formData, image_url: data.publicUrl });
+      }
+    } catch (error) {
+      console.error('[v0] Error uploading image:', error);
+      alert('Failed to upload image');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = {
+      // Validate image for new services
+      if (!editingId && !formData.image_url) {
+        alert('Please upload a service image');
+        return;
+      }
+
+      const finalCategory = formData.category === 'Other' ? formData.otherCategory : formData.category;
+
+      const payload: any = {
         name: formData.name,
         description: formData.description,
-        category: formData.category,
-        price: formData.price === '' || formData.price == null ? null : Number(formData.price),
-        duration_minutes:
-          formData.duration_minutes === '' || formData.duration_minutes == null
-            ? null
-            : Number(formData.duration_minutes),
-        is_active: true,
+        category: finalCategory,
       };
+
+      if (formData.image_url) {
+        payload.image_url = formData.image_url;
+      }
+
+      console.log('[v0] Submitting service payload:', payload);
 
       if (editingId) {
         const res = await fetch('/api/admin/services', {
@@ -96,38 +140,31 @@ export default function ServicesManager() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, payload }),
         });
-
         const result = await res.json();
-        if (!res.ok) {
-          console.error('[v0] Server update error:', result);
-          throw new Error(result?.error?.message || result?.error || 'Update failed');
-        }
+        if (!res.ok) throw new Error(result?.error?.message || 'Update failed');
       } else {
         const res = await fetch('/api/admin/services', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, is_active: true }),
         });
-
         const result = await res.json();
-        if (!res.ok) {
-          console.error('[v0] Server insert error:', result);
-          throw new Error(result?.error?.message || result?.error || 'Insert failed');
-        }
+        if (!res.ok) throw new Error(result?.error?.message || 'Insert failed');
       }
 
       setFormData({
         name: '',
         description: '',
         category: '',
-        price: 0,
-        duration_minutes: 30,
+        image_url: '',
+        otherCategory: '',
       });
       setShowForm(false);
       setEditingId(null);
       fetchServices();
     } catch (error: any) {
-      console.error('[v0] Error adding service:', error?.message ?? error, { error });
+      console.error('[v0] Error saving service:', error);
+      alert(`Error: ${error.message}`);
     }
   };
 
@@ -158,8 +195,8 @@ export default function ServicesManager() {
       name: service.name || '',
       description: service.description || '',
       category: service.category || '',
-      price: service.price || 0,
-      duration_minutes: service.duration_minutes || 30,
+      image_url: service.image_url || '',
+      otherCategory: '',
     });
     setEditingId(service.id);
     setShowForm(true);
@@ -168,7 +205,19 @@ export default function ServicesManager() {
   return (
     <div className="space-y-6">
       <Button
-        onClick={() => setShowForm(!showForm)}
+        onClick={() => {
+          setShowForm(!showForm);
+          if (!showForm) {
+            setEditingId(null);
+            setFormData({
+              name: '',
+              description: '',
+              category: '',
+              image_url: '',
+              otherCategory: '',
+            });
+          }
+        }}
         className="bg-primary hover:bg-primary/90 gap-2"
       >
         <Plus className="w-4 h-4" />
@@ -176,51 +225,108 @@ export default function ServicesManager() {
       </Button>
 
       {showForm && (
-        <form onSubmit={handleAddService} className="bg-white border border-border rounded-lg p-6 space-y-4">
-          <input
-            type="text"
-            placeholder="Service Name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full border border-border rounded px-3 py-2"
-            required
-          />
-          <textarea
-            placeholder="Description"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full border border-border rounded px-3 py-2 min-h-20"
-          />
-          <input
-            type="text"
-            placeholder="Category"
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            className="w-full border border-border rounded px-3 py-2"
-          />
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleAddService} className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-lg p-8 space-y-6 max-w-2xl">
+          {/* Service Name */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Service Name *</label>
             <input
-              type="number"
-              placeholder="Price"
-              value={formData.price === '' || Number.isNaN(Number(formData.price)) ? '' : formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-              className="w-full border border-border rounded px-3 py-2"
-            />
-            <input
-              type="number"
-              placeholder="Duration (minutes)"
-              value={formData.duration_minutes === '' || Number.isNaN(Number(formData.duration_minutes)) ? '' : formData.duration_minutes}
-              onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value === '' ? '' : parseInt(e.target.value) })}
-              className="w-full border border-border rounded px-3 py-2"
+              type="text"
+              placeholder="e.g., Regular Checkup"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full border border-blue-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
             />
           </div>
-          <div className="flex gap-2">
-            <Button type="submit" className="bg-primary hover:bg-primary/90">Save</Button>
-            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+
+          {/* Short Description */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Short Description *</label>
+            <textarea
+              placeholder="Write a brief description of the service..."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full border border-blue-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-h-24 resize-none"
+              required
+            />
+          </div>
+
+          {/* Department/Field Dropdown */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Department/Field *</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full border border-blue-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+              required
+            >
+              <option value="">Select a department...</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Other Category Input */}
+          {formData.category === 'Other' && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Specify Department *</label>
+              <input
+                type="text"
+                placeholder="e.g., Oncology"
+                value={formData.otherCategory}
+                onChange={(e) => setFormData({ ...formData, otherCategory: e.target.value })}
+                className="w-full border border-blue-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              />
+            </div>
+          )}
+
+          {/* Service Image Upload */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Service Image *</label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) await uploadServiceImage(file);
+                }}
+                className="w-full border-2 border-dashed border-blue-300 rounded-lg px-4 py-6 text-center cursor-pointer hover:border-primary hover:bg-blue-50 transition"
+                required={!editingId}
+              />
+              <p className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                Click to select an image
+              </p>
+            </div>
+            {imageUploading && <p className="text-sm text-primary font-semibold mt-2">Uploading image...</p>}
+            {formData.image_url && <p className="text-sm text-green-600 font-semibold mt-2">✓ Image uploaded</p>}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-blue-100">
+            <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 h-11 font-semibold">
+              {editingId ? 'Update Service' : 'Add Service'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
+              className="px-6 h-11 font-semibold"
+            >
+              Cancel
+            </Button>
           </div>
         </form>
       )}
 
+      {/* Services Table */}
       <div className="bg-white border border-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
@@ -233,24 +339,32 @@ export default function ServicesManager() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-border">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold">Duration</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Department</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {services.map((service) => (
                   <tr key={service.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      {service.image_url ? (
+                        <img src={service.image_url} alt={service.name} className="w-12 h-12 rounded object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                          <span className="text-xs text-gray-500">No img</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-medium">{service.name}</td>
                     <td className="px-6 py-4">{service.category}</td>
-                    <td className="px-6 py-4">₹{service.price}</td>
-                    <td className="px-6 py-4">{service.duration_minutes} min</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{service.description}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => startEdit(service)}>
-                          Edit
+                          <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
