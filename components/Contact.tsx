@@ -85,7 +85,7 @@ export default function Contact() {
                   <p className="text-muted-foreground">1st Floor,Raj Antila CHS Ltd.,Poonam Garden,S.K.Stone</p>
                   <p className="text-muted-foreground text-sm">Mira Road(E),Thane-401107</p>
                   <iframe
-                        src="https://share.google/x0nGtbQSwL81NlGWF"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3765.8813848016425!2d72.86808077498301!3d19.28752378196112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b0413c50ad0d%3A0xbc0cc184cfaeac49!2sRaj%20Antila!5e0!3m2!1sen!2sin!4v1780762374588!5m2!1sen!2sin"
                         width="100%"
                         height="150"
                         className="border border-border rounded-lg"     
