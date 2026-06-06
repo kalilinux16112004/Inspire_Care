@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Star, MapPin, Phone, Mail, Calendar, Clock, Award, Users, BookOpen } from 'lucide-react';
+import { Phone, Mail, Calendar, Clock, Award, BookOpen } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Doctor {
@@ -22,21 +22,22 @@ interface Doctor {
   image?: string;
   rating?: number;
   reviews?: number;
-  availability?: Record<string, any> | string;
-  clinicAddress?: string;
   phone?: string;
   email?: string;
+  availability?: string;
   specialServices?: string[];
-  qualifications?: string[];
   testimonials?: Array<{ patient: string; rating: number; text: string }>;
-  languages?: string[];
+
 }
 
-export default function DoctorProfilePage({ params }: { params: { id: string } }) {
+export default function DoctorProfilePage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState('monday');
   const supabase = createClient();
+
+  // params may be a Promise in client components — unwrap with React.use()
+  const resolvedParams = use(params as any) as { id: string };
+  const docId = resolvedParams?.id;
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -44,7 +45,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
         const { data, error } = await supabase
           .from('doctors')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', docId)
           .single();
 
         if (error) throw error;
@@ -64,14 +65,11 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
             image_url: data.image_url,
             rating: data.rating || 4.8,
             reviews: data.reviews || 0,
-            availability: data.availability || { monday: '9:00 AM - 5:00 PM' },
-            clinicAddress: data.clinicAddress || data.clinic_address || '',
             phone: data.phone || '',
             email: data.email || '',
+            availability: data.availability || '',
             specialServices: data.specialServices || data.special_services || [],
-            qualifications: data.qualifications || [],
             testimonials: data.testimonials || [],
-            languages: data.languages || [],
           });
         }
       } catch (error) {
@@ -82,7 +80,7 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
     };
 
     fetchDoctor();
-  }, [params.id, supabase]);
+  }, [docId, supabase]);
 
   if (loading) {
     return (
@@ -149,39 +147,6 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                 <h1 className="text-4xl font-bold mb-2">{doctor.name}</h1>
                 <p className="text-blue-100 text-xl mb-1">{doctor.specialization || 'Specialist'}</p>
                 <p className="text-blue-100 mb-4">{doctor.department || 'General Medicine'}</p>
-
-                {/* Rating */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-5 h-5 ${i < Math.floor(doctor.rating) ? 'fill-yellow-300 text-yellow-300' : 'text-gray-300'}`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-lg font-bold">{doctor.rating}</span>
-                  <span className="text-blue-100">({doctor.reviews} reviews)</span>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-blue-400/30 p-3 rounded">
-                    <div className="font-semibold text-sm">Experience</div>
-                    <div className="text-2xl font-bold">{doctor.experience || doctor.experience_years || 0}+</div>
-                    <div className="text-xs text-blue-100">Years</div>
-                  </div>
-                  <div className="bg-blue-400/30 p-3 rounded">
-                    <div className="font-semibold text-sm">Consultation</div>
-                    <div className="text-2xl font-bold">₹{doctor.fee}</div>
-                    <div className="text-xs text-blue-100">per visit</div>
-                  </div>
-                  <div className="bg-blue-400/30 p-3 rounded">
-                    <div className="font-semibold text-sm">Patients</div>
-                    <div className="text-2xl font-bold">1000+</div>
-                    <div className="text-xs text-blue-100">Treated</div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -198,120 +163,29 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                 <p className="text-muted-foreground leading-relaxed mb-4">{doctor.bio || 'No profile description is available for this doctor yet.'}</p>
               </div>
 
-              {/* Qualifications */}
-              <div className="bg-white p-8 rounded-lg shadow">
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-primary" />
-                  Qualifications
-                </h2>
-                <ul className="space-y-2">
-                  {(doctor.qualifications || []).map((qual: string, i: number) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <span className="w-2 h-2 bg-primary rounded-full"></span>
-                      <span>{qual}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {/* Qualifications - Hidden since not stored anymore */}
+              {/* Previously displayed qualifications array here */}
 
               {/* Special Services */}
-              <div className="bg-white p-8 rounded-lg shadow">
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-primary" />
-                  Special Services
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {(doctor.specialServices || []).map((service: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-secondary rounded-full"></span>
-                      <span className="text-sm">{service}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Testimonials */}
-              <div className="bg-white p-8 rounded-lg shadow">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-primary" />
-                  Patient Reviews
-                </h2>
-                <div className="space-y-4">
-                  {(doctor.testimonials || []).map((review: any, i: number) => (
-                    <div key={i} className="border-l-4 border-primary p-4 bg-gray-50 rounded">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">{review.patient}</span>
-                        <div className="flex gap-1">
-                          {[...Array(5)].map((_, j) => (
-                            <Star
-                              key={j}
-                              className={`w-4 h-4 ${j < Math.floor(review.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-muted-foreground italic">&quot;{review.text}&quot;</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Right Column - Booking */}
             <div className="space-y-6">
               {/* Availability */}
-              <div className="bg-white p-6 rounded-lg shadow-lg sticky top-20">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  Availability
-                </h3>
-
-                <div className="space-y-2 mb-6">
-                  {typeof doctor.availability === 'object' ? (
-                    Object.entries(doctor.availability).map(([day, time]: any) => (
-                      <button
-                        key={day}
-                        onClick={() => setSelectedDay(day)}
-                        className={`w-full text-left p-3 rounded capitalize transition-all ${
-                          selectedDay === day
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        <span className="font-semibold">{day}</span>
-                        {typeof time === 'string' ? (
-                          <p className="text-xs">{time}</p>
-                        ) : (
-                          <p className="text-xs">{time.start} - {time.end}</p>
-                        )}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-3 rounded bg-gray-100 text-sm">
-                      {doctor.availability}
-                    </div>
-                  )}
+              {doctor.availability && (
+                <div className="bg-white p-6 rounded-lg shadow-lg">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    Availability
+                  </h3>
+                  <p className="text-gray-700 text-sm">{doctor.availability}</p>
                 </div>
-
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openBooking', { detail: { doctorId: String(doctor.id) } }))}
-                  className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors block text-center"
-                >
-                  Book Appointment
-                </button>
-              </div>
+              )}
 
               {/* Contact Info */}
               <div className="bg-white p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-4">Contact Information</h3>
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-sm">Clinic Location</p>
-                      <p className="text-muted-foreground text-sm">{doctor.clinicAddress}</p>
-                    </div>
-                  </div>
                   <div className="flex items-start gap-3">
                     <Phone className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                     <div>
@@ -330,19 +204,6 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
                       </a>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Languages */}
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Languages</h3>
-                <div className="space-y-2">
-                  {(doctor.languages || []).map((lang: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-primary rounded-full"></span>
-                      <span>{lang}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>

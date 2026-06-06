@@ -152,8 +152,7 @@ export default function DoctorsPage() {
             {filtered.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filtered.map(doctor => (
-                  <Link key={doctor.id} href={`/doctors/${doctor.id}`}>
-                    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all cursor-pointer h-full overflow-hidden group">
+                  <div key={doctor.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all cursor-pointer h-full overflow-hidden group">
                       {/* Avatar */}
                       <div className="bg-gradient-to-r from-blue-400 to-blue-600 p-8 text-center text-6xl">
                         {doctor.image}
@@ -202,13 +201,15 @@ export default function DoctorsPage() {
                         {/* Footer */}
                         <div className="flex items-center justify-between">
                           <span className="text-lg font-bold text-primary">₹{doctor.fee}</span>
-                          <button className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                            Book Now →
-                          </button>
+                          <Link
+                            href={`/doctors/${doctor.id}`}
+                            className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
+                          >
+                            read more →
+                          </Link>
                         </div>
                       </div>
                     </div>
-                  </Link>
                 ))}
               </div>
             ) : (
