@@ -73,7 +73,12 @@ export async function deleteDoctor(id: string) {
   try {
     const supabase = await createClient();
     
-    const { error } = await supabase.from('doctors').delete().eq('id', id);
+    // Use soft delete: mark as inactive instead of hard delete
+    // This prevents foreign key constraint violations from appointments
+    const { error } = await supabase
+      .from('doctors')
+      .update({ is_active: false })
+      .eq('id', id);
 
     if (error) {
       console.error('[v0] Server: Error deleting doctor:', {

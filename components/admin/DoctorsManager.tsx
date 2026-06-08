@@ -86,6 +86,7 @@ export default function DoctorsManager() {
       const { data, error } = await supabase
         .from('doctors')
         .select('*')
+        .eq('is_active', true)
         .order('name');
 
       if (error) throw error;

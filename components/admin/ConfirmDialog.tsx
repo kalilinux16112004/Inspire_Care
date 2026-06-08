@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
 type ConfirmDialogProps = {
@@ -26,13 +26,13 @@ export default function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) onCancel() }}>
       <DialogContent>
-        <div className="p-2">
+        <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description && <p className="text-sm text-muted-foreground mt-2">{description}</p>}
-          <div className="mt-6 flex gap-2 justify-end">
-            <Button variant="outline" onClick={onCancel}>{cancelLabel}</Button>
-            <Button onClick={onConfirm}>{confirmLabel}</Button>
-          </div>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        <div className="mt-6 flex gap-2 justify-end">
+          <Button variant="outline" onClick={onCancel}>{cancelLabel}</Button>
+          <Button onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </DialogContent>
     </Dialog>
