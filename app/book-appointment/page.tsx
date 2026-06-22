@@ -51,7 +51,7 @@ export default function Page() {
 
   return (
     <main className="max-w-6xl mx-auto py-20 px-4 flex justify-center">
-      <div className="bg-white rounded-lg p-6 border border-border shadow-sm w-full max-w-lg">
+      <div className="bg-white dark:bg-slate-900 rounded-lg p-6 border border-border dark:border-slate-800 shadow-sm w-full max-w-lg">
         <h1 className="text-2xl font-bold mb-4">Book Appointment</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,7 +67,7 @@ export default function Page() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Department</label>
-          <select name="department" value={form.department} onChange={handleChange} className="w-full border border-border rounded-lg p-2">
+          <select name="department" value={form.department} onChange={handleChange} className="w-full border border-border dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="">Select department</option>
             <option>General</option>
             <option>Cardiology</option>

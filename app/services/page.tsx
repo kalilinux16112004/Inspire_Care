@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Shield, Loader2 } from 'lucide-react';
+import { Shield, Loader2, ChevronDown } from 'lucide-react';
 
 interface Service {
   id: string;
@@ -82,16 +82,16 @@ export default function ServicesPage() {
       <main>
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Services' }]} />
         {loading ? (
-          <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+          <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-900/40">
             <div className="max-w-6xl mx-auto text-center">
-              <Loader2 className="mx-auto mb-6 w-8 h-8 animate-spin text-primary" />
-              <p className="text-lg text-slate-700">Loading services...</p>
+              <Loader2 className="mx-auto mb-6 w-8 h-8 animate-spin text-primary dark:text-blue-400" />
+              <p className="text-lg text-slate-700 dark:text-slate-350">Loading services...</p>
             </div>
           </section>
         ) : null}
 
         {/* Hero Section */}
-        <section className="bg-linear-to-r from-blue-50 to-green-50 py-16 px-4 sm:px-6 lg:px-8">
+        <section className="bg-linear-to-r from-blue-50 to-green-50 dark:from-slate-900 dark:to-slate-950 py-16 px-4 sm:px-6 lg:px-8 border-b border-slate-100 dark:border-slate-800/40">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">Comprehensive Healthcare Services</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -101,7 +101,7 @@ export default function ServicesPage() {
         </section>
 
         {/* Filter Section */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200">
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-xl font-semibold mb-6">Filter by Department</h2>
             <div className="flex flex-wrap gap-3">
@@ -109,9 +109,9 @@ export default function ServicesPage() {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-full font-semibold transition-all ${selectedCategory === cat
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                  className={`px-4 py-2 rounded-full font-semibold transition-all cursor-pointer ${selectedCategory === cat
+                    ? 'bg-primary dark:bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-slate-900 text-foreground dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-800'
                     }`}
                 >
                   {cat === 'all' ? 'All Services' : cat}
@@ -122,13 +122,13 @@ export default function ServicesPage() {
         </section>
 
         {/* Services Grid */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-900/30">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredServices.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-300 group"
+                  className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-primary/30 dark:hover:border-blue-500/30 hover:shadow-md transition-all duration-300 group"
                 >
                   {/* Image */}
                   {service.image_url ? (
@@ -145,18 +145,18 @@ export default function ServicesPage() {
 
                   {/* Content */}
                   <div className="p-5">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
                       {service.name}
                     </h3>
 
                     {service.category && (
-                      <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
+                      <span className="inline-block px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium rounded mb-2">
                         {service.category}
                       </span>
                     )}
 
                     {service.description && (
-                      <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-3">
+                      <p className="text-slate-655 dark:text-slate-400 text-xs md:text-sm mb-3 leading-relaxed line-clamp-3">
                         {service.description}
                       </p>
                     )}
@@ -168,7 +168,7 @@ export default function ServicesPage() {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
             <div className="space-y-4">
@@ -190,12 +190,12 @@ export default function ServicesPage() {
                   a: 'Yes, we have experienced specialists across multiple departments. Referrals can be arranged.',
                 },
               ].map((faq, idx) => (
-                <details key={idx} className="bg-gray-50 p-4 rounded-lg group cursor-pointer">
-                  <summary className="font-semibold flex items-center justify-between">
+                <details key={idx} className="bg-slate-50 dark:bg-slate-800/20 p-4 border border-slate-200/50 dark:border-slate-800 rounded-lg group cursor-pointer transition-all">
+                  <summary className="font-semibold flex items-center justify-between text-foreground">
                     {faq.q}
-                    <span className="text-primary group-open:rotate-180 transition-transform">▼</span>
+                    <ChevronDown className="w-5 h-5 text-primary dark:text-blue-400 group-open:rotate-180 transition-transform duration-200" />
                   </summary>
-                  <p className="text-muted-foreground mt-3">{faq.a}</p>
+                  <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{faq.a}</p>
                 </details>
               ))}
             </div>

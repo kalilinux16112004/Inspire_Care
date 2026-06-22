@@ -1,10 +1,16 @@
 'use client';
 
 import { Phone } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export default function EmergencyButton() {
+  const pathname = usePathname();
   const emergencyNumber = '123456789';
   const emergencyNumberFormatted = `tel:${emergencyNumber}`;
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <a

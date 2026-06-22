@@ -4,9 +4,16 @@ import { useEffect, useState } from 'react'
 import BookAppointmentCard from './BookAppointmentCard'
 import { X } from 'lucide-react'
 
+import { usePathname } from 'next/navigation'
+
 export default function BookingOverlay() {
   const [open, setOpen] = useState(false)
   const [doctorId, setDoctorId] = useState<string | undefined>(undefined)
+  const pathname = usePathname()
+
+  if (pathname?.startsWith('/admin')) {
+    return null
+  }
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -34,7 +41,7 @@ export default function BookingOverlay() {
       <div className="absolute inset-0 bg-black/40" onClick={close} />
       <div className="relative z-10 w-full max-w-lg">
         <div className="flex justify-end mb-2">
-          <button onClick={close} className="p-2 rounded-full bg-white shadow">
+          <button onClick={close} className="w-11 h-11 rounded-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent dark:border-slate-800 flex items-center justify-center active:scale-95 duration-150 cursor-pointer" aria-label="Close booking overlay">
             <X className="w-5 h-5" />
           </button>
         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Loader2, Camera } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface GalleryItem {
@@ -70,7 +70,7 @@ export default function GalleryPage() {
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Gallery' }]} />
 
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-blue-50 to-green-50 py-16 px-4 sm:px-6 lg:px-8">
+        <section className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-slate-900 dark:to-slate-950 py-16 px-4 sm:px-6 lg:px-8 border-b border-blue-100/20 dark:border-slate-800/40">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">Our Facilities & Events</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -80,7 +80,7 @@ export default function GalleryPage() {
         </section>
 
         {/* Filter Section */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white border-b">
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800/60">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-xl font-semibold mb-6">Filter by Category</h2>
             <div className="flex flex-wrap gap-3">
@@ -91,10 +91,10 @@ export default function GalleryPage() {
                     setSelectedCategory(cat);
                     setSelectedImageIdx(null);
                   }}
-                  className={`px-4 py-2 rounded-full font-semibold transition-all capitalize ${
+                  className={`px-4 py-2 rounded-full font-semibold transition-all capitalize cursor-pointer ${
                     selectedCategory === cat
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                      ? 'bg-primary dark:bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-slate-900 text-foreground dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-800'
                   }`}
                 >
                   {cat === 'all' ? 'All Images' : cat}
@@ -105,7 +105,7 @@ export default function GalleryPage() {
         </section>
 
         {/* Gallery Grid */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-900/30">
           <div className="max-w-6xl mx-auto">
             {loading ? (
               <div className="flex justify-center items-center min-h-[400px]">
@@ -121,7 +121,7 @@ export default function GalleryPage() {
                   <div
                     key={item.id}
                     onClick={() => setSelectedImageIdx(idx)}
-                    className="group cursor-pointer bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all transform hover:scale-105"
+                    className="group cursor-pointer bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-xl border border-transparent dark:border-slate-800/60 transition-all transform hover:scale-105"
                   >
                     {/* Image */}
                     <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white relative overflow-hidden">
@@ -132,7 +132,7 @@ export default function GalleryPage() {
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="text-4xl opacity-50">📷</div>
+                        <Camera className="w-12 h-12 text-white opacity-40" />
                       )}
                       <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity flex items-center justify-center">
                         <span className="text-white text-2xl">+</span>
@@ -140,9 +140,9 @@ export default function GalleryPage() {
                     </div>
                     {/* Content */}
                     <div className="p-4">
-                      <h3 className="font-bold text-foreground mb-1">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-                      <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-1 rounded mt-2 capitalize">
+                      <h3 className="font-bold text-foreground dark:text-white mb-1">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400 line-clamp-2">{item.description}</p>
+                      <span className="inline-block text-xs bg-primary/10 dark:bg-blue-900/20 text-primary dark:text-blue-400 px-2 py-1 rounded mt-2 capitalize">
                         {item.category}
                       </span>
                     </div>
@@ -174,7 +174,7 @@ export default function GalleryPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="text-9xl opacity-50">📷</div>
+                  <Camera className="w-24 h-24 text-white opacity-40" />
                 )}
 
                 {/* Navigation Buttons */}
@@ -198,10 +198,10 @@ export default function GalleryPage() {
               </div>
 
               {/* Details */}
-              <div className="bg-white p-6">
-                <h3 className="text-2xl font-bold mb-2">{filteredItems[selectedImageIdx]?.title}</h3>
-                <p className="text-muted-foreground mb-4">{filteredItems[selectedImageIdx]?.description}</p>
-                <span className="inline-block text-sm bg-primary/10 text-primary px-3 py-1 rounded capitalize">
+              <div className="bg-white dark:bg-slate-900 p-6 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{filteredItems[selectedImageIdx]?.title}</h3>
+                <p className="text-muted-foreground dark:text-slate-400 mb-4">{filteredItems[selectedImageIdx]?.description}</p>
+                <span className="inline-block text-sm bg-primary/10 dark:bg-blue-900/20 text-primary dark:text-blue-400 px-3 py-1 rounded capitalize">
                   {filteredItems[selectedImageIdx]?.category}
                 </span>
               </div>
@@ -210,7 +210,7 @@ export default function GalleryPage() {
         )}
 
         {/* Stats Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Hospital Highlights</h2>
             <div className="grid md:grid-cols-4 gap-8">
@@ -220,9 +220,9 @@ export default function GalleryPage() {
                 { label: 'ICU Beds', value: '30' },
                 { label: 'Ambulances', value: '12' },
               ].map((stat, idx) => (
-                <div key={idx} className="text-center p-6 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border border-blue-200">
-                  <div className="text-4xl font-bold text-primary mb-2">{stat.value}</div>
-                  <div className="text-muted-foreground font-semibold">{stat.label}</div>
+                <div key={idx} className="text-center p-6 bg-gradient-to-br from-blue-50 to-green-50 dark:from-slate-900/50 dark:to-slate-950/20 rounded-lg border border-blue-200/60 dark:border-slate-800">
+                  <div className="text-4xl font-bold text-primary dark:text-blue-400 mb-2">{stat.value}</div>
+                  <div className="text-muted-foreground dark:text-slate-400 font-semibold">{stat.label}</div>
                 </div>
               ))}
             </div>

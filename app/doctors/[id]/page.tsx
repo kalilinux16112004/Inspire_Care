@@ -4,7 +4,7 @@ import { useEffect, useState, use } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import { Phone, Mail, Calendar, Clock, Award, BookOpen } from 'lucide-react';
+import { Phone, Mail, Calendar, Clock, Award, BookOpen, User, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Doctor {
@@ -105,9 +105,10 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
     return (
       <>
         <Navigation />
-        <main className="min-h-screen flex items-center justify-center py-20">
+        <main className="min-h-screen flex items-center justify-center py-20 bg-background text-foreground">
           <div className="text-center">
-            <p className="text-xl font-semibold">Loading doctor profile...</p>
+            <Loader2 className="mx-auto mb-4 w-8 h-8 animate-spin text-primary dark:text-blue-400" />
+            <p className="text-xl font-semibold text-slate-700 dark:text-slate-350">Loading doctor profile...</p>
           </div>
         </main>
         <Footer />
@@ -119,7 +120,7 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
     return (
       <>
         <Navigation />
-        <main className="min-h-screen flex items-center justify-center py-20">
+        <main className="min-h-screen flex items-center justify-center py-20 bg-background text-foreground">
           <div className="text-center">
             <h1 className="text-3xl font-bold">Doctor not found</h1>
             <p className="mt-4 text-muted-foreground">The requested profile could not be loaded.</p>
@@ -143,12 +144,12 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
         />
 
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <section className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-slate-900 dark:to-slate-950 text-white py-12 px-4 sm:px-6 lg:px-8 border-b border-blue-500/20 dark:border-slate-800/40">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-3 gap-8 items-start">
               {/* Avatar */}
               <div className="text-center md:text-left">
-                <div className="text-9xl mb-6 bg-blue-400 rounded-full w-32 h-32 flex items-center justify-center overflow-hidden mx-auto md:mx-0">
+                <div className="bg-blue-400 dark:bg-slate-800 rounded-full w-32 h-32 flex items-center justify-center overflow-hidden mx-auto md:mx-0 shadow-sm border border-white/10">
                   {doctor.image_url ? (
                     <img
                       src={doctor.image_url}
@@ -156,7 +157,7 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    doctor.image || '👨‍⚕️'
+                    <User className="w-16 h-16 text-white opacity-90" />
                   )}
                 </div>
               </div>
@@ -172,14 +173,14 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
         </section>
 
         {/* Main Content */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-900/30">
           <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
             {/* Left Column - Details */}
             <div className="md:col-span-2 space-y-8">
               {/* About */}
-              <div className="bg-white p-8 rounded-lg shadow">
-                <h2 className="text-2xl font-bold mb-4">About Dr. {doctor.name.split(' ')[1] || doctor.name}</h2>
-                <p className="text-muted-foreground leading-relaxed mb-4">{doctor.bio || 'No profile description is available for this doctor yet.'}</p>
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-lg shadow border border-transparent dark:border-slate-800/80">
+                <h2 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">About Dr. {doctor.name.split(' ')[1] || doctor.name}</h2>
+                <p className="text-muted-foreground dark:text-slate-400 leading-relaxed mb-4">{doctor.bio || 'No profile description is available for this doctor yet.'}</p>
               </div>
 
               {/* Qualifications - Hidden since not stored anymore */}
@@ -192,16 +193,16 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
             <div className="space-y-6">
               {/* Availability */}
               {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
-                <div className="bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-primary" />
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg border border-transparent dark:border-slate-800/80">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
+                    <Calendar className="w-5 h-5 text-primary dark:text-blue-400" />
                     Availability Schedule
                   </h3>
                   <div className="space-y-2">
                     {parseAvailability(doctor.availability).map((schedule, idx) => (
-                      <div key={idx} className="flex justify-between items-center pb-2 border-b border-gray-100 last:border-b-0">
-                        <span className="font-semibold text-gray-700">{schedule.day}</span>
-                        <span className="text-primary font-medium">{schedule.time}</span>
+                      <div key={idx} className="flex justify-between items-center pb-2 border-b border-gray-100 dark:border-slate-800 last:border-b-0">
+                        <span className="font-semibold text-gray-700 dark:text-slate-300">{schedule.day}</span>
+                        <span className="text-primary dark:text-blue-400 font-medium">{schedule.time}</span>
                       </div>
                     ))}
                   </div>
@@ -209,23 +210,23 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
               )}
 
               {/* Contact Info */}
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Contact Information</h3>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg border border-transparent dark:border-slate-800/80">
+                <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Contact Information</h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <Phone className="w-5 h-5 text-primary dark:text-blue-400 mt-1 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-sm">Phone</p>
-                      <a href={`tel:${doctor.phone}`} className="text-primary hover:underline text-sm">
+                      <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">Phone</p>
+                      <a href={`tel:${doctor.phone}`} className="text-primary dark:text-blue-400 hover:underline text-sm">
                         {doctor.phone}
                       </a>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                    <Mail className="w-5 h-5 text-primary dark:text-blue-400 mt-1 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-sm">Email</p>
-                      <a href={`mailto:${doctor.email}`} className="text-primary hover:underline text-sm">
+                      <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">Email</p>
+                      <a href={`mailto:${doctor.email}`} className="text-primary dark:text-blue-400 hover:underline text-sm">
                         {doctor.email}
                       </a>
                     </div>

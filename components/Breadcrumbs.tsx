@@ -14,7 +14,7 @@ interface BreadcrumbsProps {
 
 export default function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
-    <nav className="bg-gray-50 px-4 sm:px-6 lg:px-8 py-4">
+    <nav className="bg-gray-50 dark:bg-slate-900 px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-250/20 dark:border-slate-800/60">
       <div className="max-w-6xl mx-auto">
         <ol className="flex items-center space-x-2 text-sm">
           {items.map((item, index) => (

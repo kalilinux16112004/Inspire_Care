@@ -266,14 +266,15 @@ export default function AppointmentBooking({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto border border-border dark:border-slate-800 transition-all duration-300">
         {/* Header */}
-        <div className="sticky top-0 bg-primary text-white px-6 py-4 flex items-center justify-between border-b z-10">
-          <h2 className="text-2xl font-bold">Book an Appointment</h2>
+        <div className="sticky top-0 bg-primary dark:bg-blue-600 text-white px-6 py-4 flex items-center justify-between border-b border-primary-foreground/10 z-10 shadow-sm">
+          <h2 className="text-xl sm:text-2xl font-bold">Book an Appointment</h2>
           <button
             onClick={handleCloseAndReset}
-            className="p-1 hover:bg-white/20 rounded transition-colors"
+            className="p-2 hover:bg-white/20 rounded-lg transition-all w-11 h-11 flex items-center justify-center active:scale-90 cursor-pointer"
+            aria-label="Close Booking Dialog"
           >
             <X className="w-6 h-6" />
           </button>
@@ -286,23 +287,23 @@ export default function AppointmentBooking({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-3">
-                  <User className="w-4 h-4 inline mr-2 text-primary" />
+                  <User className="w-4 h-4 inline mr-2 text-primary dark:text-blue-400" />
                   Select Doctor
                 </label>
                 {loading ? (
                   <div className="flex justify-center py-4">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <Loader2 className="w-6 h-6 animate-spin text-primary dark:text-blue-400" />
                   </div>
                 ) : (
                   <select
                     name="selectedDoctor"
                     value={formData.selectedDoctor}
                     onChange={handleInputChange}
-                    className="w-full border border-border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                    className="w-full border border-border dark:border-slate-800 rounded-lg p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
                   >
                     <option value="">Choose a doctor...</option>
                     {doctors.map((doctor) => (
-                      <option key={doctor.id} value={doctor.id}>
+                      <option key={doctor.id} value={doctor.id} className="bg-white dark:bg-slate-900">
                         {doctor.name} - {doctor.specialization}
                       </option>
                     ))}
@@ -313,7 +314,7 @@ export default function AppointmentBooking({
               <Button
                 onClick={() => setStep(2)}
                 disabled={!formData.selectedDoctor}
-                className="w-full bg-primary hover:bg-primary/90 font-semibold"
+                className="w-full bg-primary hover:bg-primary/95 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-semibold h-11 cursor-pointer active:scale-95 transition-all shadow-sm"
               >
                 Continue
               </Button>
@@ -324,7 +325,7 @@ export default function AppointmentBooking({
           {step === 2 && (
             <div className="space-y-6">
               {bookingError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
+                <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-lg text-sm text-red-800 dark:text-red-400 flex items-start gap-2">
                   <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                   <p>{bookingError}</p>
                 </div>
@@ -332,7 +333,7 @@ export default function AppointmentBooking({
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-foreground">
-                  <Calendar className="w-4 h-4 inline mr-2 text-primary" />
+                  <Calendar className="w-4 h-4 inline mr-2 text-primary dark:text-blue-400" />
                   Choose Date
                 </label>
                 <Input
@@ -341,19 +342,19 @@ export default function AppointmentBooking({
                   value={formData.appointmentDate}
                   onChange={handleInputChange}
                   min={new Date().toISOString().split('T')[0]}
-                  className="border-border bg-white"
+                  className="border-border dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                 />
               </div>
 
               {formData.appointmentDate && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm font-semibold text-slate-700">
-                      <Clock className="w-4 h-4 inline mr-2 text-primary" />
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-305">
+                      <Clock className="w-4 h-4 inline mr-2 text-primary dark:text-blue-400" />
                       Available Time Slots for {getDayOfWeek(formData.appointmentDate)}
                     </label>
                     {holdExpiry && (
-                      <span className="text-xs bg-blue-50 text-blue-700 font-semibold border border-blue-200 rounded-full px-2.5 py-0.5 flex items-center gap-1.5 animate-pulse">
+                      <span className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-900/30 rounded-full px-2.5 py-0.5 flex items-center gap-1.5 animate-pulse">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         Hold: {countdown}
                       </span>
@@ -374,14 +375,14 @@ export default function AppointmentBooking({
                 <Button
                   onClick={() => setStep(1)}
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 cursor-pointer active:scale-95 transition-all"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={() => setStep(3)}
                   disabled={!formData.appointmentDate || !formData.appointmentTime}
-                  className="flex-1 bg-primary hover:bg-primary/90 font-semibold"
+                  className="flex-1 bg-primary hover:bg-primary/95 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-semibold cursor-pointer active:scale-95 transition-all shadow-sm"
                 >
                   Continue
                 </Button>
@@ -393,7 +394,7 @@ export default function AppointmentBooking({
           {step === 3 && (
             <div className="space-y-4">
               {bookingError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
+                <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-lg text-sm text-red-800 dark:text-red-400 flex items-start gap-2">
                   <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-bold">Booking Exception:</p>
@@ -403,9 +404,9 @@ export default function AppointmentBooking({
               )}
 
               {holdExpiry && (
-                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-blue-800 flex justify-between items-center font-medium">
+                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/20 rounded-lg text-xs text-blue-800 dark:text-blue-400 flex justify-between items-center font-medium">
                   <span>Your selected slot is reserved. Complete details before expiry.</span>
-                  <span className="bg-blue-100 px-2 py-0.5 rounded text-blue-700 font-bold">{countdown}</span>
+                  <span className="bg-blue-100 dark:bg-blue-950/40 px-2 py-0.5 rounded text-blue-750 dark:text-blue-400 font-bold">{countdown}</span>
                 </div>
               )}
 
@@ -416,7 +417,7 @@ export default function AppointmentBooking({
                   placeholder="Full Name *"
                   value={formData.patientName}
                   onChange={handleInputChange}
-                  className="border-border bg-white"
+                  className="border-border dark:border-slate-800 bg-white dark:bg-slate-900"
                 />
                 <Input
                   type="email"
@@ -424,7 +425,7 @@ export default function AppointmentBooking({
                   placeholder="Email Address *"
                   value={formData.patientEmail}
                   onChange={handleInputChange}
-                  className="border-border bg-white"
+                  className="border-border dark:border-slate-800 bg-white dark:bg-slate-900"
                 />
               </div>
 
@@ -435,7 +436,7 @@ export default function AppointmentBooking({
                   placeholder="Phone Number *"
                   value={formData.patientPhone}
                   onChange={handleInputChange}
-                  className="border-border bg-white"
+                  className="border-border dark:border-slate-800 bg-white dark:bg-slate-900"
                 />
                 <Input
                   type="number"
@@ -443,19 +444,19 @@ export default function AppointmentBooking({
                   placeholder="Age"
                   value={formData.patientAge}
                   onChange={handleInputChange}
-                  className="border-border bg-white"
+                  className="border-border dark:border-slate-800 bg-white dark:bg-slate-900"
                 />
               </div>
 
               {/* Healthcare Specific Fields */}
-              <div className="grid md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+              <div className="grid md:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Appointment Type *</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Appointment Type *</label>
                   <select
                     name="appointmentType"
                     value={formData.appointmentType}
                     onChange={handleInputChange}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white text-slate-700"
+                    className="w-full border border-border dark:border-slate-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
                   >
                     <option value="consultation">General Consultation</option>
                     <option value="follow_up">Follow-Up Review</option>
@@ -464,14 +465,14 @@ export default function AppointmentBooking({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Reason for Visit</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Reason for Visit</label>
                   <Input
                     type="text"
                     name="visitReason"
                     placeholder="e.g. Eye checkup, follow-up prescription"
                     value={formData.visitReason}
                     onChange={handleInputChange}
-                    className="border-border bg-white text-sm"
+                    className="border-border dark:border-slate-800 bg-white dark:bg-slate-900 text-sm"
                   />
                 </div>
               </div>
@@ -481,21 +482,21 @@ export default function AppointmentBooking({
                 placeholder="Describe your symptoms or medical concerns (optional)"
                 value={formData.symptomsDescription}
                 onChange={handleInputChange}
-                className="border-border min-h-24 bg-white"
+                className="border-border dark:border-slate-800 min-h-24 bg-white dark:bg-slate-900"
               />
 
               <div className="flex gap-3">
                 <Button
                   onClick={() => setStep(2)}
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 cursor-pointer active:scale-95 transition-all"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 bg-primary hover:bg-primary/90 font-semibold"
+                  className="flex-1 bg-primary hover:bg-primary/95 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-semibold cursor-pointer active:scale-95 transition-all shadow-sm"
                 >
                   {submitting ? (
                     <>
@@ -513,27 +514,27 @@ export default function AppointmentBooking({
           {/* Step 4: Success & Calendar Sync */}
           {step === 4 && createdAppointment && (
             <div className="text-center py-6 space-y-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-full text-green-600 mb-2">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 dark:bg-emerald-950/20 rounded-full text-green-600 dark:text-emerald-400 mb-2">
                 <CheckCircle className="w-10 h-10" />
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-900">Appointment Request Received!</h3>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Appointment Request Received!</h3>
                 <p className="text-muted-foreground max-w-md mx-auto text-sm">
                   We have registered your details. A pending receipt alert has been dispatched to <strong>{formData.patientEmail}</strong>.
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 max-w-md mx-auto text-left space-y-2 text-sm shadow-sm">
-                <p className="font-semibold text-slate-800">Booking Summary:</p>
-                <div className="grid grid-cols-3 gap-y-1.5 text-slate-600">
-                  <span className="font-medium">Doctor:</span>
+              <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl p-4 max-w-md mx-auto text-left space-y-2 text-sm shadow-sm">
+                <p className="font-bold text-slate-800 dark:text-slate-200">Booking Summary:</p>
+                <div className="grid grid-cols-3 gap-y-1.5 text-slate-600 dark:text-slate-350">
+                  <span className="font-semibold">Doctor:</span>
                   <span className="col-span-2">Dr. {createdAppointment.doctorName} ({createdAppointment.doctorSpecialization})</span>
                   
-                  <span className="font-medium">Scheduled Date:</span>
+                  <span className="font-semibold">Scheduled Date:</span>
                   <span className="col-span-2">{new Date(createdAppointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   
-                  <span className="font-medium">Time Slot:</span>
+                  <span className="font-semibold">Time Slot:</span>
                   <span className="col-span-2">{createdAppointment.time} (30 mins)</span>
                 </div>
               </div>
@@ -545,23 +546,23 @@ export default function AppointmentBooking({
                     href={getGoogleCalendarUrl(createdAppointment)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 text-sm font-semibold rounded-lg transition-colors bg-white shadow-sm"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg transition-colors bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
                   >
-                    <CalendarDays className="w-4 h-4 text-blue-600" />
+                    <CalendarDays className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     Google Calendar
                   </a>
                   <button
                     onClick={() => downloadIcsFile(createdAppointment)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 text-sm font-semibold rounded-lg transition-colors bg-white shadow-sm"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-800 hover:border-primary dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg transition-colors bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
                   >
-                    <Download className="w-4 h-4 text-primary" />
+                    <Download className="w-4 h-4 text-primary dark:text-blue-400" />
                     Download Invite (.ics)
                   </button>
                 </div>
               </div>
 
-              <div className="pt-4 border-t max-w-md mx-auto">
-                <Button onClick={handleCloseAndReset} className="w-full bg-primary hover:bg-primary/90 font-semibold">
+              <div className="pt-4 border-t border-border dark:border-slate-800 max-w-md mx-auto">
+                <Button onClick={handleCloseAndReset} className="w-full bg-primary dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold h-11 cursor-pointer active:scale-95 transition-all rounded-lg shadow-sm">
                   Finish
                 </Button>
               </div>

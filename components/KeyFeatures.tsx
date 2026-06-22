@@ -31,7 +31,7 @@ export default function KeyFeatures() {
   ];
 
   return (
-    <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+    <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950/40 transition-all duration-300">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, idx) => {
@@ -39,15 +39,15 @@ export default function KeyFeatures() {
             return (
               <div
                 key={idx}
-                className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-6 hover:shadow-lg hover:border-primary/30 transition-all duration-300 group"
+                className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/30 dark:to-slate-900/10 border border-slate-200 dark:border-slate-800 hover:border-primary/30 dark:hover:border-blue-500/30 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 group cursor-pointer"
               >
-                <div className={`bg-gradient-to-br ${feature.color} p-4 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform`}>
+                <div className={`bg-gradient-to-br ${feature.color} p-4 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform shadow-sm`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
                   {feature.description}
                 </p>
               </div>

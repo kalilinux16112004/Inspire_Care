@@ -58,7 +58,7 @@ export default function AboutPage() {
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'About Us' }]} />
 
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-blue-50 to-blue-100 py-20 px-4 sm:px-6 lg:px-8">
+        <section className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-slate-900 dark:to-slate-950 py-20 px-4 sm:px-6 lg:px-8 border-b border-blue-100/20 dark:border-slate-800/40">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6 text-balance">
               Caring with Compassion 
@@ -71,7 +71,7 @@ export default function AboutPage() {
         </section>
 
         {/* Stats Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Our Impact</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -80,7 +80,7 @@ export default function AboutPage() {
                 return (
                   <div
                     key={idx}
-                    className={`text-center p-6 rounded-lg bg-gray-50 border border-gray-200 transition-all duration-500 ${
+                    className={`text-center p-6 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 transition-all duration-500 ${
                       animateStats ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                     }`}
                   >
@@ -95,7 +95,7 @@ export default function AboutPage() {
         </section>
 
         {/* Mission & Vision */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-900/30">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12">
               <div>
@@ -127,14 +127,14 @@ export default function AboutPage() {
         </section>
 
         {/* Core Values */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Our Core Values</h2>
             <div className="grid md:grid-cols-2 gap-8">
               {values.map((value, idx) => {
                 const Icon = value.icon;
                 return (
-                  <div key={idx} className="p-6 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                  <div key={idx} className="p-6 bg-gradient-to-br from-blue-50 to-green-50 dark:from-slate-900/50 dark:to-slate-950/20 rounded-lg border border-blue-200 dark:border-slate-800">
                     <div className="flex items-start gap-4">
                       <Icon className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
                       <div>

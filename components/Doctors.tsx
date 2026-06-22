@@ -65,21 +65,21 @@ export default function Doctors() {
   }, []);
 
   return (
-    <section id="doctors" className="py-16 bg-slate-50">
+    <section id="doctors" className="py-16 bg-slate-50 dark:bg-slate-950/60 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12 space-y-3">
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 text-balance">
+          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white text-balance">
             Our Medical Team
           </h2>
-          <p className="text-base md:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
             Board-certified specialists with extensive experience, committed to delivering exceptional healthcare outcomes.
           </p>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center min-h-[400px]">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary dark:text-blue-400" />
           </div>
         ) : doctors.length === 0 ? (
           <div className="text-center py-12">
@@ -87,65 +87,67 @@ export default function Doctors() {
           </div>
         ) : (
           <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {doctors.map((doctor) => (
                 <div
                   key={doctor.id}
-                  className="bg-white rounded-lg overflow-hidden border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all duration-300 group"
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:border-primary/30 dark:hover:border-blue-500/30 hover:shadow-md transition-all duration-300 group cursor-pointer active:scale-[0.99] flex flex-col justify-between"
                 >
-                  {/* Doctor Image / Avatar */}
-                  {doctor.image_url ? (
-                    <div className="h-40 bg-slate-200 flex items-center justify-center overflow-hidden">
-                      <img
-                        src={doctor.image_url}
-                        alt={doctor.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-40 bg-slate-300 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-2xl text-white font-bold">
-                          {doctor.name.charAt(0)}
-                        </span>
+                  <div>
+                    {/* Doctor Image / Avatar */}
+                    {doctor.image_url ? (
+                      <div className="h-44 bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={doctor.image_url}
+                          alt={doctor.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
-                    </div>
-                  )}
-
-                  {/* Doctor Info */}
-                  <div className="p-4 space-y-3">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">
-                        {doctor.name}
-                      </h3>
-                      {doctor.specialization && (
-                        <p className="text-primary font-semibold text-xs mt-0.5">
-                          {doctor.specialization}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Experience and Qualification */}
-                    {doctor.experience_years && (
-                      <p className="text-xs text-slate-600 font-medium">
-                        {doctor.experience_years}+ years experience
-                      </p>
-                    )}
-
-                    {/* Availability Schedule */}
-                    {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
-                      <div className="pt-2 border-t border-slate-200">
-                        <p className="text-xs font-semibold text-slate-700 mb-2">Available:</p>
-                        <div className="space-y-1 max-h-24 overflow-y-auto">
-                          {parseAvailability(doctor.availability).map((schedule, idx) => (
-                            <div key={idx} className="text-xs text-slate-600 flex justify-between gap-2">
-                              <span className="font-medium">{schedule.day}:</span>
-                              <span className="text-right">{schedule.time}</span>
-                            </div>
-                          ))}
+                    ) : (
+                      <div className="h-44 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <div className="w-16 h-16 bg-primary/10 dark:bg-blue-400/10 rounded-full flex items-center justify-center">
+                          <span className="text-2xl text-primary dark:text-blue-400 font-bold">
+                            {doctor.name.charAt(0)}
+                          </span>
                         </div>
                       </div>
                     )}
+
+                    {/* Doctor Info */}
+                    <div className="p-5 space-y-3">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                          {doctor.name}
+                        </h3>
+                        {doctor.specialization && (
+                          <p className="text-primary dark:text-blue-400 font-semibold text-xs mt-1">
+                            {doctor.specialization}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Experience and Qualification */}
+                      {doctor.experience_years && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                          {doctor.experience_years}+ years experience
+                        </p>
+                      )}
+
+                      {/* Availability Schedule */}
+                      {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
+                        <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Weekly Schedule:</p>
+                          <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1">
+                            {parseAvailability(doctor.availability).map((schedule, idx) => (
+                              <div key={idx} className="text-xs text-slate-600 dark:text-slate-455 flex justify-between gap-2">
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">{schedule.day}:</span>
+                                <span className="text-right text-slate-600 dark:text-slate-400">{schedule.time}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -154,7 +156,7 @@ export default function Doctors() {
             {/* CTA Section */}
             <div className="mt-10 text-center">
               <Link href="/doctors">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8">
+                <Button size="lg" className="bg-primary hover:bg-primary/95 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-semibold h-12 px-8 active:scale-95 transition-all cursor-pointer shadow-sm">
                   View All Specialists
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

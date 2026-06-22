@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import BookingOverlay from '@/components/BookingOverlay'
 import EmergencyButton from '@/components/EmergencyButton'
+import { ThemeProvider } from '@/components/theme-provider'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -42,11 +43,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
+    <html lang="en" className="bg-background" suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        {children}
-        <BookingOverlay />
-        <EmergencyButton />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <BookingOverlay />
+          <EmergencyButton />
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

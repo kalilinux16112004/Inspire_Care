@@ -48,7 +48,7 @@ export default function Gallery() {
   const selected = items.find((item) => item.id === selectedId);
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-gray-50 dark:bg-slate-950/40 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
@@ -61,7 +61,7 @@ export default function Gallery() {
 
         {loading ? (
           <div className="flex justify-center items-center min-h-[400px]">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary dark:text-blue-400" />
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-12">
@@ -70,14 +70,14 @@ export default function Gallery() {
         ) : (
           <>
             {/* Gallery Grid */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-3 gap-6">
               {items.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => setSelectedId(item.id)}
-                  className="relative group cursor-pointer overflow-hidden rounded-lg"
+                  className="relative group cursor-pointer overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-sm active:scale-[0.99] transition-all duration-300"
                 >
-                  <div className="relative h-64 bg-gray-200">
+                  <div className="relative h-64 bg-gray-200 dark:bg-slate-800">
                     {item.image_url ? (
                       <img
                         src={item.image_url}
@@ -92,9 +92,14 @@ export default function Gallery() {
                   </div>
                   
                   {/* Overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-white font-semibold text-center">{item.title}</p>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center px-4 transform translate-y-2 group-hover:translate-y-0">
+                      <p className="text-white font-bold text-lg">{item.title}</p>
+                      {item.category && (
+                        <span className="inline-block mt-2 px-2 py-0.5 text-[10px] uppercase tracking-wider bg-white/20 text-white rounded font-semibold backdrop-blur-xs">
+                          {item.category}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -104,7 +109,7 @@ export default function Gallery() {
             {/* View All Button */}
             <div className="mt-12 text-center">
               <Link href="/gallery">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8">
+                <Button size="lg" className="bg-primary hover:bg-primary/95 text-white dark:bg-blue-600 dark:hover:bg-blue-700 font-semibold h-12 px-8 active:scale-95 transition-all cursor-pointer shadow-sm">
                   View All Gallery
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -114,17 +119,18 @@ export default function Gallery() {
             {/* Lightbox Modal */}
             {selected && (
               <div
-                className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
                 onClick={() => setSelectedId(null)}
               >
                 <div
-                  className="relative bg-white rounded-lg overflow-hidden max-w-2xl w-full max-h-[90vh] flex flex-col"
+                  className="relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Close Button */}
+                  {/* Close Button (Expanded Touch Target >= 44x44px) */}
                   <button
                     onClick={() => setSelectedId(null)}
-                    className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+                    className="absolute top-4 right-4 z-10 bg-black/60 hover:bg-black/85 text-white rounded-full p-2.5 transition-colors w-11 h-11 flex items-center justify-center active:scale-90 cursor-pointer"
+                    aria-label="Close Lightbox"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -148,12 +154,12 @@ export default function Gallery() {
                         {selected.title}
                       </h3>
                       {selected.category && (
-                        <p className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
+                        <p className="inline-block px-3 py-1 bg-primary/10 dark:bg-blue-400/10 text-primary dark:text-blue-400 text-xs font-semibold rounded-full capitalize">
                           {selected.category}
                         </p>
                       )}
                       {selected.description && (
-                        <p className="text-muted-foreground leading-relaxed">
+                        <p className="text-muted-foreground text-sm leading-relaxed">
                           {selected.description}
                         </p>
                       )}

@@ -346,7 +346,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
   }
 
   return (
-    <div className="bg-white rounded-lg p-6 border border-border shadow-sm w-full max-w-lg">
+    <div className="bg-white dark:bg-slate-900 rounded-lg p-6 border border-border dark:border-slate-800 shadow-sm w-full max-w-lg">
       <h3 className="text-xl font-semibold mb-4 text-foreground">Book Appointment</h3>
 
       {bookingError && (
@@ -371,50 +371,50 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1 text-slate-700">Patient Name</label>
+          <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Patient Name</label>
           <Input 
             name="patientName" 
             value={form.patientName} 
             onChange={handleChange} 
             placeholder="Full name" 
-            className="bg-white"
+            className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Phone Number</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-355">Phone Number</label>
             <Input 
               name="phone" 
               type="tel" 
               value={form.phone} 
               onChange={handleChange} 
               placeholder="Mobile number" 
-              className="bg-white"
+              className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Email (Optional)</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-355">Email (Optional)</label>
             <Input 
               name="email" 
               type="email" 
               value={form.email} 
               onChange={handleChange} 
               placeholder="Email address" 
-              className="bg-white"
+              className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1 text-slate-700">Preferred Date</label>
+          <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Preferred Date</label>
           <Input 
             name="preferredDate" 
             type="date" 
             value={form.preferredDate} 
             onChange={handleSelectChange}
             min={new Date().toISOString().split('T')[0]}
-            className="bg-white"
+            className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800"
           />
           {form.preferredDate && (
             <p className="text-xs text-muted-foreground mt-1 font-semibold">
@@ -425,12 +425,12 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Start Time</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Start Time</label>
             <select
               name="startTime"
               value={form.startTime}
               onChange={handleSelectChange}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-border dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select start time</option>
               {timeSlots.map((slot) => (
@@ -442,13 +442,13 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">End Time</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">End Time</label>
             <select
               name="endTime"
               value={form.endTime}
               onChange={handleSelectChange}
               disabled={!form.startTime}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-border dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
             >
               <option value="">Select end time</option>
               {timeSlots
@@ -463,22 +463,22 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1 text-slate-700">Doctor</label>
+          <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Doctor</label>
           <select
             name="doctorId"
             value={form.doctorId}
             onChange={handleSelectChange}
             disabled={!form.startTime || !form.endTime || loadingDoctors || availableDoctors.length === 0}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 border border-border dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
           >
             <option value="">
               {loadingDoctors 
                 ? 'Loading doctors...' 
                 : (!form.preferredDate || !form.startTime || !form.endTime) 
-                  ? 'Select date and time first' 
-                  : availableDoctors.length === 0 
-                    ? 'No doctors available at this time' 
-                    : 'Select a doctor'}
+                ? 'Select date and time first' 
+                : availableDoctors.length === 0 
+                ? 'No doctors available at this time' 
+                : 'Select a doctor'}
             </option>
             {availableDoctors.map((doctor) => (
               <option key={doctor.id} value={doctor.id}>
@@ -488,14 +488,14 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+        <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Appointment Type</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Appointment Type</label>
             <select
               name="appointmentType"
               value={form.appointmentType}
               onChange={handleSelectChange}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary text-slate-700"
+              className="w-full px-3 py-2 border border-border dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="consultation">General Consultation</option>
               <option value="follow_up">Follow-Up Review</option>
@@ -504,13 +504,13 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-700">Reason for Visit</label>
+            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Reason for Visit</label>
             <Input 
               name="visitReason" 
               value={form.visitReason} 
               onChange={handleChange} 
               placeholder="e.g. Eye checkup" 
-              className="bg-white text-sm"
+              className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 text-sm"
             />
           </div>
         </div>

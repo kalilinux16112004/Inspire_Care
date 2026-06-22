@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { createClient } from '@/lib/supabase/client';
+import { User, Loader2 } from 'lucide-react';
 
 interface Doctor {
   id: string;
@@ -93,9 +94,10 @@ export default function DoctorsPage() {
     return (
       <>
         <Navigation />
-        <main className="min-h-screen flex items-center justify-center py-20">
+        <main className="min-h-screen flex items-center justify-center py-20 bg-background text-foreground">
           <div className="text-center">
-            <p className="text-xl font-semibold">Loading doctors...</p>
+            <Loader2 className="mx-auto mb-4 w-8 h-8 animate-spin text-primary dark:text-blue-400" />
+            <p className="text-xl font-semibold text-slate-700 dark:text-slate-350">Loading doctors...</p>
           </div>
         </main>
         <Footer />
@@ -110,7 +112,7 @@ export default function DoctorsPage() {
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Our Doctors' }]} />
 
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-blue-50 to-blue-100 py-16 px-4 sm:px-6 lg:px-8">
+        <section className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-slate-900 dark:to-slate-950 py-16 px-4 sm:px-6 lg:px-8 border-b border-blue-100/20 dark:border-slate-800/40">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">Meet Our Expert Doctors</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -120,7 +122,7 @@ export default function DoctorsPage() {
         </section>
 
         {/* Search and Filter */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white border-b">
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800/60">
           <div className="max-w-6xl mx-auto">
             <div className="mb-6">
               <input
@@ -128,7 +130,7 @@ export default function DoctorsPage() {
                 placeholder="Search doctors by name or specialization..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="flex flex-wrap gap-3">
@@ -136,10 +138,10 @@ export default function DoctorsPage() {
                 <button
                   key={dept}
                   onClick={() => setSelectedDept(dept)}
-                  className={`px-4 py-2 rounded-full font-semibold transition-all ${
+                  className={`px-4 py-2 rounded-full font-semibold transition-all cursor-pointer ${
                     selectedDept === dept
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                      ? 'bg-primary dark:bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-slate-900 text-foreground dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-800'
                   }`}
                 >
                   {dept === 'all' ? 'All Departments' : dept}
@@ -150,12 +152,12 @@ export default function DoctorsPage() {
         </section>
 
         {/* Doctors Grid */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-900/30">
           <div className="max-w-6xl mx-auto">
             {filtered.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.map(doctor => (
-                  <div key={doctor.id} className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-300 group">
+                  <div key={doctor.id} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-primary/30 dark:hover:border-blue-500/30 hover:shadow-md transition-all duration-300 group">
                     {/* Doctor Image */}
                     {doctor.image_url ? (
                       <img
@@ -165,47 +167,47 @@ export default function DoctorsPage() {
                       />
                     ) : (
                       <div className="w-full h-40 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                        <span className="text-6xl">👨‍⚕️</span>
+                        <User className="w-16 h-16 text-white opacity-40" />
                       </div>
                     )}
 
                     {/* Doctor Info */}
                     <div className="p-5">
-                      <h3 className="text-lg font-bold text-slate-900 mb-1">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">
                         {doctor.name}
                       </h3>
 
                       {doctor.specialization && (
-                        <p className="text-primary font-semibold text-xs mb-2">
+                        <p className="text-primary dark:text-blue-400 font-semibold text-xs mb-2">
                           {doctor.specialization}
                         </p>
                       )}
 
                       {doctor.qualification && (
-                        <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
+                        <span className="inline-block px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium rounded mb-2">
                           {doctor.qualification}
                         </span>
                       )}
 
                       {doctor.experience_years && (
-                        <p className="text-xs text-slate-600 font-medium mb-3">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-3">
                           {doctor.experience_years}+ years experience
                         </p>
                       )}
 
                       {doctor.bio && (
-                        <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
+                        <p className="text-slate-605 dark:text-slate-400 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
                           {doctor.bio}
                         </p>
                       )}
 
                       {/* Availability Schedule */}
                       {doctor.availability && parseAvailability(doctor.availability).length > 0 && (
-                        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-xs font-semibold text-slate-700 mb-2">Available Days:</p>
+                        <div className="mb-3 p-3 bg-blue-50/50 dark:bg-slate-950/40 border border-blue-200 dark:border-slate-800 rounded-lg">
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Available Days:</p>
                           <div className="space-y-1 max-h-20 overflow-y-auto">
                             {parseAvailability(doctor.availability).map((schedule, idx) => (
-                              <div key={idx} className="text-xs text-slate-600 flex justify-between gap-2">
+                              <div key={idx} className="text-xs text-slate-600 dark:text-slate-400 flex justify-between gap-2">
                                 <span className="font-medium min-w-fit">{schedule.fullDay}:</span>
                                 <span className="text-right">{schedule.time}</span>
                               </div>
@@ -215,10 +217,10 @@ export default function DoctorsPage() {
                       )}
 
                       {/* Footer Link */}
-                      <div className="pt-3 border-t border-slate-200 flex justify-end">
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                         <Link
                           href={`/doctors/${doctor.id}`}
-                          className="text-primary hover:text-primary/80 font-semibold text-sm flex items-center gap-1"
+                          className="text-primary dark:text-blue-400 hover:text-primary/80 dark:hover:text-blue-300 font-semibold text-sm flex items-center gap-1"
                         >
                           read more →
                         </Link>
