@@ -22,18 +22,43 @@ export default function Services() {
 
   useEffect(() => {
     const fetchServices = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('services')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(3);
+      setLoading(true);
 
-        if (error) throw error;
-        setServices(data || []);
-      } catch (error) {
-        console.error('[v0] Error fetching services:', error);
+      try {
+        const result = await supabase
+          .from("services")
+          .select("*")
+          .order("name");
+
+        console.log("SUPABASE RESULT:", result);
+
+        if (result.error) {
+          alert(
+            JSON.stringify(
+              {
+                message: result.error.message,
+                details: result.error.details,
+                hint: result.error.hint,
+                code: result.error.code,
+              },
+              null,
+              2
+            )
+          );
+
+          throw result.error;
+        }
+
+        setServices(result.data ?? []);
+      } catch (err) {
+        console.log("RAW ERROR:", err);
+
+        if (err instanceof Error) {
+          console.log("MESSAGE:", err.message);
+          console.log("STACK:", err.stack);
+        }
+
+        console.log("STRINGIFIED:", JSON.stringify(err, null, 2));
       } finally {
         setLoading(false);
       }
@@ -89,13 +114,13 @@ export default function Services() {
                     <h3 className="text-lg font-bold text-slate-900 mb-2">
                       {service.name}
                     </h3>
-                    
+
                     {service.category && (
                       <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 text-xs font-medium rounded mb-2">
                         {service.category}
                       </span>
                     )}
-                    
+
                     {service.description && (
                       <p className="text-slate-600 text-xs md:text-sm mb-3 leading-relaxed line-clamp-3">
                         {service.description}

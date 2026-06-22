@@ -16,7 +16,17 @@ export async function POST(req: Request) {
     const { data, error } = await supabase.from('services').insert([body])
 
     if (error) {
-      return NextResponse.json({ error: error.message || error }, { status: 500 })
+      console.error("INSERT ERROR:", error);
+
+      return NextResponse.json(
+        {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ data }, { status: 200 })

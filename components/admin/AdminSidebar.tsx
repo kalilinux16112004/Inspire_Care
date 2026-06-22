@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Users, Stethoscope, Image, Settings, Menu, X } from 'lucide-react';
+import { Calendar, Users, Stethoscope, Image, Settings, Menu, X, Mail } from 'lucide-react';
 import { useState } from 'react';
 
 interface AdminSidebarProps {
@@ -37,9 +37,9 @@ export default function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarPr
       count: null,
     },
     {
-      icon: Settings,
-      label: 'Settings',
-      value: 'settings',
+      icon: Mail,
+      label: 'Communications',
+      value: 'communications',
       count: null,
     },
   ];

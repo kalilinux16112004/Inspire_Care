@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, X, Calendar, Clock, User } from 'lucide-react';
+import { Loader2, X, Calendar, Clock, User, CheckCircle, CalendarDays, Download, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { getDoctorDaySlots, TimeSlot } from '@/lib/availability';
+import { createAppointmentTransaction, createSlotHold, releaseSlotHold } from '@/lib/booking';
+import { getGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendar';
+import SlotGrid from '@/components/booking/SlotGrid';
 
 interface Doctor {
   id: string;
@@ -28,6 +32,14 @@ export default function AppointmentBooking({
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  
+  // Slot Hold Expiration Tracker
+  const [userId, setUserId] = useState('');
+  const [holdExpiry, setHoldExpiry] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState('');
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
@@ -39,13 +51,62 @@ export default function AppointmentBooking({
     patientPhone: '',
     patientAge: '',
     symptomsDescription: '',
+    appointmentType: 'consultation',
+    visitReason: '',
   });
+
+  const [createdAppointment, setCreatedAppointment] = useState<any>(null);
+
+  // Generate or retrieve a persistent client session UUID
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let id = localStorage.getItem('bookingUserId');
+      if (!id) {
+        id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('bookingUserId', id);
+      }
+      setUserId(id);
+    }
+  }, []);
+
+  // Countdown timer effect for slot holds
+  useEffect(() => {
+    if (!holdExpiry) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.round((holdExpiry - Date.now()) / 1000));
+      if (remaining <= 0) {
+        setHoldExpiry(null);
+        setFormData((prev) => ({ ...prev, appointmentTime: '' }));
+        setBookingError('Your slot hold session has expired. Please select a slot again.');
+        fetchSlots();
+      } else {
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        setCountdown(`${mins}:${secs.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [holdExpiry]);
 
   useEffect(() => {
     if (isOpen && step === 1) {
       fetchDoctors();
     }
   }, [isOpen, step]);
+
+  useEffect(() => {
+    if (formData.selectedDoctor && formData.appointmentDate) {
+      fetchSlots();
+    } else {
+      setSlots([]);
+    }
+  }, [formData.selectedDoctor, formData.appointmentDate]);
+
+  useEffect(() => {
+    if (doctorId) {
+      setFormData((prev) => ({ ...prev, selectedDoctor: doctorId }));
+    }
+  }, [doctorId]);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -65,56 +126,142 @@ export default function AppointmentBooking({
     }
   };
 
+  const fetchSlots = async () => {
+    setLoadingSlots(true);
+    try {
+      const result = await getDoctorDaySlots(
+        supabase,
+        formData.selectedDoctor,
+        formData.appointmentDate
+      );
+      setSlots(result.slots || []);
+    } catch (error) {
+      console.error('Error fetching slots:', error);
+      setSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === 'selectedDoctor' || name === 'appointmentDate' ? { appointmentTime: '' } : {}),
     }));
   };
 
+  const handleSelectSlot = async (slotTime: string) => {
+    setLoadingSlots(true);
+    setBookingError(null);
+    try {
+      const result = await createSlotHold({
+        doctorId: formData.selectedDoctor,
+        appointmentDate: formData.appointmentDate,
+        slotId: slotTime,
+        userId: userId,
+      });
+
+      if (!result.success) {
+        setBookingError(result.error || 'Failed to place slot hold.');
+        fetchSlots(); // Refresh list to update status
+        return;
+      }
+
+      setFormData((prev) => ({ ...prev, appointmentTime: slotTime }));
+      setHoldExpiry(Date.now() + 5 * 60 * 1000); // 5 Minutes
+    } catch (e: any) {
+      console.error('Error holding slot:', e);
+      setBookingError(e.message || 'Error locking slot.');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const getDayOfWeek = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[date.getDay()];
+    } catch (e) {
+      return '';
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!formData.selectedDoctor || !formData.patientName || !formData.patientEmail || !formData.patientPhone) {
+    if (!formData.selectedDoctor || !formData.patientName || !formData.patientEmail || !formData.patientPhone || !formData.appointmentTime) {
       alert('Please fill in all required fields');
       return;
     }
 
     setSubmitting(true);
+    setBookingError(null);
     try {
-      const { error } = await supabase.from('appointments').insert({
-        doctor_id: formData.selectedDoctor,
-        appointment_date: formData.appointmentDate,
-        appointment_time: formData.appointmentTime,
-        patient_name: formData.patientName,
-        patient_email: formData.patientEmail,
-        patient_phone: formData.patientPhone,
-        patient_age: formData.patientAge ? parseInt(formData.patientAge) : null,
-        symptoms_description: formData.symptomsDescription,
-        status: 'pending',
+      const result = await createAppointmentTransaction({
+        doctorId: formData.selectedDoctor,
+        appointmentDate: formData.appointmentDate,
+        appointmentTime: formData.appointmentTime,
+        patientName: formData.patientName,
+        patientEmail: formData.patientEmail,
+        patientPhone: formData.patientPhone,
+        patientAge: formData.patientAge ? parseInt(formData.patientAge) : null,
+        symptomsDescription: formData.symptomsDescription,
+        userId: userId,
+        appointmentType: formData.appointmentType,
+        visitReason: formData.visitReason,
       });
 
-      if (error) throw error;
+      if (!result.success) {
+        setBookingError(result.error || 'Failed to complete booking transaction.');
+        // If booking failed because slot was booked/expired, clean timer
+        setHoldExpiry(null);
+        return;
+      }
 
-      alert('Appointment booked successfully! We will confirm shortly.');
-      onClose();
-      setStep(1);
-      setFormData({
-        selectedDoctor: '',
-        appointmentDate: '',
-        appointmentTime: '',
-        patientName: '',
-        patientEmail: '',
-        patientPhone: '',
-        patientAge: '',
-        symptomsDescription: '',
-      });
-    } catch (error) {
+      setHoldExpiry(null); // Clean hold timer on success
+      setCreatedAppointment(result.appointment);
+      setStep(4);
+    } catch (error: any) {
       console.error('[v0] Error booking appointment:', error);
-      alert('Failed to book appointment. Please try again.');
+      setBookingError(error.message || 'Failed to book appointment. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleCloseAndReset = async () => {
+    // Release hold if user cancels modal before booking
+    if (formData.appointmentTime && holdExpiry) {
+      await releaseSlotHold({
+        doctorId: formData.selectedDoctor,
+        appointmentDate: formData.appointmentDate,
+        slotId: formData.appointmentTime,
+        userId: userId,
+      });
+    }
+
+    onClose();
+    setStep(1);
+    setHoldExpiry(null);
+    setBookingError(null);
+    setFormData({
+      selectedDoctor: '',
+      appointmentDate: '',
+      appointmentTime: '',
+      patientName: '',
+      patientEmail: '',
+      patientPhone: '',
+      patientAge: '',
+      symptomsDescription: '',
+      appointmentType: 'consultation',
+      visitReason: '',
+    });
+    setCreatedAppointment(null);
+  };
+
+  const activeDoctorInfo = doctors.find((d) => d.id === formData.selectedDoctor);
 
   if (!isOpen) return null;
 
@@ -122,10 +269,10 @@ export default function AppointmentBooking({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-primary text-white px-6 py-4 flex items-center justify-between border-b">
+        <div className="sticky top-0 bg-primary text-white px-6 py-4 flex items-center justify-between border-b z-10">
           <h2 className="text-2xl font-bold">Book an Appointment</h2>
           <button
-            onClick={onClose}
+            onClick={handleCloseAndReset}
             className="p-1 hover:bg-white/20 rounded transition-colors"
           >
             <X className="w-6 h-6" />
@@ -139,7 +286,7 @@ export default function AppointmentBooking({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-3">
-                  <User className="w-4 h-4 inline mr-2" />
+                  <User className="w-4 h-4 inline mr-2 text-primary" />
                   Select Doctor
                 </label>
                 {loading ? (
@@ -151,7 +298,7 @@ export default function AppointmentBooking({
                     name="selectedDoctor"
                     value={formData.selectedDoctor}
                     onChange={handleInputChange}
-                    className="w-full border border-border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full border border-border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                   >
                     <option value="">Choose a doctor...</option>
                     {doctors.map((doctor) => (
@@ -166,47 +313,64 @@ export default function AppointmentBooking({
               <Button
                 onClick={() => setStep(2)}
                 disabled={!formData.selectedDoctor}
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full bg-primary hover:bg-primary/90 font-semibold"
               >
                 Continue
               </Button>
             </div>
           )}
 
-          {/* Step 2: Date and Time */}
+          {/* Step 2: Date and Time Slots */}
           {step === 2 && (
-            <div className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
-                    <Calendar className="w-4 h-4 inline mr-2" />
-                    Appointment Date
-                  </label>
-                  <Input
-                    type="date"
-                    name="appointmentDate"
-                    value={formData.appointmentDate}
-                    onChange={handleInputChange}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="border-border"
-                  />
+            <div className="space-y-6">
+              {bookingError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <p>{bookingError}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
-                    <Clock className="w-4 h-4 inline mr-2" />
-                    Appointment Time
-                  </label>
-                  <Input
-                    type="time"
-                    name="appointmentTime"
-                    value={formData.appointmentTime}
-                    onChange={handleInputChange}
-                    className="border-border"
-                  />
-                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-foreground">
+                  <Calendar className="w-4 h-4 inline mr-2 text-primary" />
+                  Choose Date
+                </label>
+                <Input
+                  type="date"
+                  name="appointmentDate"
+                  value={formData.appointmentDate}
+                  onChange={handleInputChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="border-border bg-white"
+                />
               </div>
 
-              <div className="flex gap-3">
+              {formData.appointmentDate && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      <Clock className="w-4 h-4 inline mr-2 text-primary" />
+                      Available Time Slots for {getDayOfWeek(formData.appointmentDate)}
+                    </label>
+                    {holdExpiry && (
+                      <span className="text-xs bg-blue-50 text-blue-700 font-semibold border border-blue-200 rounded-full px-2.5 py-0.5 flex items-center gap-1.5 animate-pulse">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Hold: {countdown}
+                      </span>
+                    )}
+                  </div>
+
+                  <SlotGrid
+                    slots={slots}
+                    selectedTime={formData.appointmentTime}
+                    onSelectTime={handleSelectSlot}
+                    loading={loadingSlots}
+                    dayName={getDayOfWeek(formData.appointmentDate)}
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
                 <Button
                   onClick={() => setStep(1)}
                   variant="outline"
@@ -217,7 +381,7 @@ export default function AppointmentBooking({
                 <Button
                   onClick={() => setStep(3)}
                   disabled={!formData.appointmentDate || !formData.appointmentTime}
-                  className="flex-1 bg-primary hover:bg-primary/90"
+                  className="flex-1 bg-primary hover:bg-primary/90 font-semibold"
                 >
                   Continue
                 </Button>
@@ -225,9 +389,26 @@ export default function AppointmentBooking({
             </div>
           )}
 
-          {/* Step 3: Patient Details */}
+          {/* Step 3: Patient Details & Healthcare Fields */}
           {step === 3 && (
             <div className="space-y-4">
+              {bookingError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold">Booking Exception:</p>
+                    <p className="mt-0.5">{bookingError}</p>
+                  </div>
+                </div>
+              )}
+
+              {holdExpiry && (
+                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-blue-800 flex justify-between items-center font-medium">
+                  <span>Your selected slot is reserved. Complete details before expiry.</span>
+                  <span className="bg-blue-100 px-2 py-0.5 rounded text-blue-700 font-bold">{countdown}</span>
+                </div>
+              )}
+
               <div className="grid md:grid-cols-2 gap-4">
                 <Input
                   type="text"
@@ -235,15 +416,15 @@ export default function AppointmentBooking({
                   placeholder="Full Name *"
                   value={formData.patientName}
                   onChange={handleInputChange}
-                  className="border-border"
+                  className="border-border bg-white"
                 />
                 <Input
                   type="email"
                   name="patientEmail"
-                  placeholder="Email *"
+                  placeholder="Email Address *"
                   value={formData.patientEmail}
                   onChange={handleInputChange}
-                  className="border-border"
+                  className="border-border bg-white"
                 />
               </div>
 
@@ -251,10 +432,10 @@ export default function AppointmentBooking({
                 <Input
                   type="tel"
                   name="patientPhone"
-                  placeholder="Phone *"
+                  placeholder="Phone Number *"
                   value={formData.patientPhone}
                   onChange={handleInputChange}
-                  className="border-border"
+                  className="border-border bg-white"
                 />
                 <Input
                   type="number"
@@ -262,16 +443,45 @@ export default function AppointmentBooking({
                   placeholder="Age"
                   value={formData.patientAge}
                   onChange={handleInputChange}
-                  className="border-border"
+                  className="border-border bg-white"
                 />
+              </div>
+
+              {/* Healthcare Specific Fields */}
+              <div className="grid md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Appointment Type *</label>
+                  <select
+                    name="appointmentType"
+                    value={formData.appointmentType}
+                    onChange={handleInputChange}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white text-slate-700"
+                  >
+                    <option value="consultation">General Consultation</option>
+                    <option value="follow_up">Follow-Up Review</option>
+                    <option value="telemedicine">Video Consultation</option>
+                    <option value="home_visit">Home Visit</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Reason for Visit</label>
+                  <Input
+                    type="text"
+                    name="visitReason"
+                    placeholder="e.g. Eye checkup, follow-up prescription"
+                    value={formData.visitReason}
+                    onChange={handleInputChange}
+                    className="border-border bg-white text-sm"
+                  />
+                </div>
               </div>
 
               <Textarea
                 name="symptomsDescription"
-                placeholder="Describe your symptoms or medical concern"
+                placeholder="Describe your symptoms or medical concerns (optional)"
                 value={formData.symptomsDescription}
                 onChange={handleInputChange}
-                className="border-border min-h-24"
+                className="border-border min-h-24 bg-white"
               />
 
               <div className="flex gap-3">
@@ -285,16 +495,74 @@ export default function AppointmentBooking({
                 <Button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 bg-primary hover:bg-primary/90"
+                  className="flex-1 bg-primary hover:bg-primary/90 font-semibold"
                 >
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Booking...
+                      Securing Slot...
                     </>
                   ) : (
-                    'Book Appointment'
+                    'Confirm Booking Request'
                   )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Success & Calendar Sync */}
+          {step === 4 && createdAppointment && (
+            <div className="text-center py-6 space-y-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-full text-green-600 mb-2">
+                <CheckCircle className="w-10 h-10" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-slate-900">Appointment Request Received!</h3>
+                <p className="text-muted-foreground max-w-md mx-auto text-sm">
+                  We have registered your details. A pending receipt alert has been dispatched to <strong>{formData.patientEmail}</strong>.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 max-w-md mx-auto text-left space-y-2 text-sm shadow-sm">
+                <p className="font-semibold text-slate-800">Booking Summary:</p>
+                <div className="grid grid-cols-3 gap-y-1.5 text-slate-600">
+                  <span className="font-medium">Doctor:</span>
+                  <span className="col-span-2">Dr. {createdAppointment.doctorName} ({createdAppointment.doctorSpecialization})</span>
+                  
+                  <span className="font-medium">Scheduled Date:</span>
+                  <span className="col-span-2">{new Date(createdAppointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  
+                  <span className="font-medium">Time Slot:</span>
+                  <span className="col-span-2">{createdAppointment.time} (30 mins)</span>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Save to your device planner</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+                  <a
+                    href={getGoogleCalendarUrl(createdAppointment)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 text-sm font-semibold rounded-lg transition-colors bg-white shadow-sm"
+                  >
+                    <CalendarDays className="w-4 h-4 text-blue-600" />
+                    Google Calendar
+                  </a>
+                  <button
+                    onClick={() => downloadIcsFile(createdAppointment)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 text-sm font-semibold rounded-lg transition-colors bg-white shadow-sm"
+                  >
+                    <Download className="w-4 h-4 text-primary" />
+                    Download Invite (.ics)
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t max-w-md mx-auto">
+                <Button onClick={handleCloseAndReset} className="w-full bg-primary hover:bg-primary/90 font-semibold">
+                  Finish
                 </Button>
               </div>
             </div>

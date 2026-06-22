@@ -69,16 +69,42 @@ export default function ServicesManager() {
 
   const fetchServices = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .order('name');
 
-      if (error) throw error;
-      setServices(data || []);
-    } catch (error) {
-      console.error('[v0] Error fetching services:', error);
+    try {
+      const result = await supabase
+        .from("services")
+        .select("*")
+        .order("name");
+
+      console.log("SUPABASE RESULT:", result);
+
+      if (result.error) {
+        alert(
+          JSON.stringify(
+            {
+              message: result.error.message,
+              details: result.error.details,
+              hint: result.error.hint,
+              code: result.error.code,
+            },
+            null,
+            2
+          )
+        );
+
+        throw result.error;
+      }
+
+      setServices(result.data ?? []);
+    } catch (err) {
+      console.log("RAW ERROR:", err);
+
+      if (err instanceof Error) {
+        console.log("MESSAGE:", err.message);
+        console.log("STACK:", err.stack);
+      }
+
+      console.log("STRINGIFIED:", JSON.stringify(err, null, 2));
     } finally {
       setLoading(false);
     }

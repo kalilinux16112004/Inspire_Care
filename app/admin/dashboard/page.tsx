@@ -8,9 +8,10 @@ import DoctorsManager from '@/components/admin/DoctorsManager';
 import ServicesManager from '@/components/admin/ServicesManager';
 import GalleryManager from '@/components/admin/GalleryManager';
 import DashboardStats from '@/components/admin/DashboardStats';
+import CommunicationsCenter from '@/components/admin/CommunicationsCenter';
 import { LogOut } from 'lucide-react';
 
-type TabType = 'appointments' | 'doctors' | 'services' | 'gallery' | 'settings';
+type TabType = 'appointments' | 'doctors' | 'services' | 'gallery' | 'communications';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -99,12 +100,7 @@ export default function AdminDashboard() {
             {activeTab === 'doctors' && <DoctorsManager />}
             {activeTab === 'services' && <ServicesManager />}
             {activeTab === 'gallery' && <GalleryManager />}
-            {activeTab === 'settings' && (
-              <div className="bg-white rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold text-foreground mb-4">Settings</h2>
-                <p className="text-muted-foreground">Settings management coming soon</p>
-              </div>
-            )}
+            {activeTab === 'communications' && <CommunicationsCenter />}
           </div>
         </div>
       </div>

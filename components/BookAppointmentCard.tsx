@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { CalendarDays, Download, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { createAppointmentTransaction, createSlotHold, releaseSlotHold } from '@/lib/booking'
+import { getGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendar'
 
 export default function BookAppointmentCard({ defaultDepartment }: { defaultDepartment?: string }) {
   const supabase = createClient()
@@ -15,14 +18,117 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
     startTime: '',
     endTime: '',
     doctorId: '',
+    appointmentType: 'consultation',
+    visitReason: '',
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [bookingError, setBookingError] = useState<string | null>(null)
   const [availableDoctors, setAvailableDoctors] = useState<any[]>([])
   const [loadingDoctors, setLoadingDoctors] = useState(false)
+  const [createdApt, setCreatedApt] = useState<any>(null)
+
+  // Slot Hold Expiration Tracker
+  const [userId, setUserId] = useState('')
+  const [holdExpiry, setHoldExpiry] = useState<number | null>(null)
+  const [countdown, setCountdown] = useState('')
+  const [activeHold, setActiveHold] = useState<{ doctorId: string; date: string; slotId: string } | null>(null)
 
   // Predefined time slots
   const timeSlots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']
+
+  // Generate or retrieve a persistent client session UUID
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let id = localStorage.getItem('bookingUserId')
+      if (!id) {
+        id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)
+        localStorage.setItem('bookingUserId', id)
+      }
+      setUserId(id)
+    }
+  }, [])
+
+  // Countdown timer effect for slot holds
+  useEffect(() => {
+    if (!holdExpiry) return
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.round((holdExpiry - Date.now()) / 1000))
+      if (remaining <= 0) {
+        setHoldExpiry(null)
+        setForm((prev) => ({ ...prev, doctorId: '' }))
+        setBookingError('Your slot hold session has expired. Please select a doctor or time slot again.')
+        if (form.preferredDate && form.startTime && form.endTime) {
+          fetchAvailableDoctors(form.preferredDate, form.startTime, form.endTime)
+        }
+      } else {
+        const mins = Math.floor(remaining / 60)
+        const secs = remaining % 60
+        setCountdown(`${mins}:${secs.toString().padStart(2, '0')}`)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [holdExpiry, form.preferredDate, form.startTime, form.endTime])
+
+  // Release hold on unmount
+  useEffect(() => {
+    return () => {
+      if (activeHold && userId) {
+        releaseSlotHold({
+          doctorId: activeHold.doctorId,
+          appointmentDate: activeHold.date,
+          slotId: activeHold.slotId,
+          userId: userId,
+        }).catch(err => console.warn('Clean up hold on unmount failed:', err))
+      }
+    }
+  }, [activeHold, userId])
+
+  // Slot hold trigger effect
+  useEffect(() => {
+    const triggerHold = async () => {
+      // If we already had an active hold, release it first
+      if (activeHold) {
+        await releaseSlotHold({
+          doctorId: activeHold.doctorId,
+          appointmentDate: activeHold.date,
+          slotId: activeHold.slotId,
+          userId: userId,
+        })
+        setActiveHold(null)
+        setHoldExpiry(null)
+      }
+
+      // Create a new hold if slot info is fully set
+      if (form.doctorId && form.preferredDate && form.startTime && userId) {
+        setBookingError(null)
+        const result = await createSlotHold({
+          doctorId: form.doctorId,
+          appointmentDate: form.preferredDate,
+          slotId: form.startTime,
+          userId: userId,
+        })
+
+        if (!result.success) {
+          setBookingError(result.error || 'Failed to place slot hold.')
+          setForm((s) => ({ ...s, doctorId: '' }))
+          // Refresh list to update status
+          if (form.preferredDate && form.startTime && form.endTime) {
+            fetchAvailableDoctors(form.preferredDate, form.startTime, form.endTime)
+          }
+        } else {
+          setActiveHold({
+            doctorId: form.doctorId,
+            date: form.preferredDate,
+            slotId: form.startTime,
+          })
+          setHoldExpiry(Date.now() + 5 * 60 * 1000)
+        }
+      }
+    }
+
+    triggerHold()
+  }, [form.doctorId, form.preferredDate, form.startTime, userId])
 
   const getDayOfWeek = (dateString: string): string => {
     const date = new Date(dateString + 'T00:00:00')
@@ -39,80 +145,109 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
     setLoadingDoctors(true)
     try {
-      const dayOfWeek = getDayOfWeek(date)
-      
-      // Fetch all doctors
-      const { data, error } = await supabase
+      const dateParts = date.split('-').map(Number)
+      const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+      const weekday = dateObj.getDay()
+
+      // 1. Fetch active doctors
+      const { data: doctorsData, error: docErr } = await supabase
         .from('doctors')
-        .select('id, name, specialization, availability')
+        .select('id, name, specialization')
+        .eq('is_active', true)
 
-      if (error) {
-        console.error('Error fetching doctors:', error.message)
-        setAvailableDoctors([])
-      } else {
-        // Filter doctors based on availability
-        const filtered = (data || []).filter((doctor: any) => {
-          try {
-            // Check if availability exists
-            if (!doctor.availability) {
-              console.warn(`Doctor ${doctor.id} has no availability data`)
-              return false
-            }
+      if (docErr) throw docErr
 
-            let availability
-            
-            // Try to parse as JSON first
-            if (typeof doctor.availability === 'string') {
-              try {
-                availability = JSON.parse(doctor.availability)
-              } catch (parseError) {
-                // If JSON parsing fails, treat as simple text format (e.g., "Monday-Wed", "Mon,Tue,Wed")
-                const availabilityText = doctor.availability.toLowerCase()
-                const dayOfWeekLower = dayOfWeek.toLowerCase()
-                
-                // Check if day is mentioned in the availability text
-                if (availabilityText.includes(dayOfWeekLower) || 
-                    availabilityText.includes(dayOfWeekLower.substring(0, 3))) {
-                  return true
-                }
-                return false
-              }
-            } else {
-              availability = doctor.availability
-            }
+      // 2. Fetch doctor availability plans for this weekday
+      const { data: plansData, error: planErr } = await supabase
+        .from('doctor_availability')
+        .select('doctor_id, start_time, end_time, slot_duration, is_available')
+        .eq('weekday', weekday)
 
-            // If we have JSON object, validate it
-            if (typeof availability === 'object' && availability !== null) {
-              // Check if doctor is available on the selected day
-              const dayAvailability = availability[dayOfWeek]
-              if (!dayAvailability || !dayAvailability.enabled) {
-                return false
-              }
+      if (planErr) throw planErr
 
-              // Check if the selected time slot falls within doctor's availability
-              const doctorStart = dayAvailability.start
-              const doctorEnd = dayAvailability.end
+      // 3. Fetch leaves on this date
+      const { data: leavesData, error: leaveErr } = await supabase
+        .from('doctor_leaves')
+        .select('doctor_id')
+        .eq('leave_date', date)
 
-              if (!doctorStart || !doctorEnd) {
-                console.warn(`Doctor ${doctor.id} missing start/end times for ${dayOfWeek}`)
-                return false
-              }
+      if (leaveErr) throw leaveErr
 
-              return start >= doctorStart && end <= doctorEnd
-            }
+      // 4. Fetch availability exceptions on this date
+      const { data: exceptionsData, error: exceptionErr } = await supabase
+        .from('doctor_availability_exceptions')
+        .select('*')
+        .eq('exception_date', date)
 
-            return false
-          } catch (e) {
-            console.error(`Error parsing doctor ${doctor.id} availability:`, e)
-            return false
-          }
-        })
+      if (exceptionErr) throw exceptionErr
 
-        setAvailableDoctors(filtered)
-        setForm((s) => ({ ...s, doctorId: '' }))
-      }
+      // 5. Fetch existing active bookings at this start time slot (excluding soft-deleted)
+      const { data: bookingsData, error: bookErr } = await supabase
+        .from('appointments')
+        .select('doctor_id')
+        .eq('appointment_date', date)
+        .eq('slot_id', start)
+        .is('deleted_at', null)
+        .neq('status', 'rejected')
+
+      if (bookErr) throw bookErr
+
+      // 6. Fetch active holds by other users
+      const { data: holdsData, error: holdErr } = await supabase
+        .from('appointment_holds')
+        .select('doctor_id')
+        .eq('appointment_date', date)
+        .eq('slot_id', start)
+        .gt('expires_at', new Date().toISOString())
+        .neq('user_id', userId)
+
+      if (holdErr) throw holdErr
+
+      const leavesSet = new Set((leavesData || []).map((l: any) => l.doctor_id))
+      const bookingsSet = new Set((bookingsData || []).map((b: any) => b.doctor_id))
+      const holdsSet = new Set((holdsData || []).map((h: any) => h.doctor_id))
+
+      const filtered = (doctorsData || []).filter((doctor: any) => {
+        // A. Is doctor on leave?
+        if (leavesSet.has(doctor.id)) return false
+
+        // B. Is doctor already booked at this time slot?
+        if (bookingsSet.has(doctor.id)) return false
+
+        // C. Is slot held by another patient?
+        if (holdsSet.has(doctor.id)) return false
+
+        // D. Check for Availability Exception override first
+        const exception = (exceptionsData || []).find((e: any) => e.doctor_id === doctor.id)
+        let plan
+        if (exception) {
+          if (!exception.is_available) return false
+          plan = exception
+        } else {
+          // E. Fallback to weekly schedule plan
+          plan = (plansData || []).find((p: any) => p.doctor_id === doctor.id && p.is_available === true)
+        }
+
+        if (!plan) return false
+
+        // Verify time boundaries
+        const timeToSeconds = (t: string) => {
+          const [h, m] = t.split(':').map(Number)
+          return h * 3600 + m * 60
+        }
+
+        const selectStart = timeToSeconds(start)
+        const selectEnd = timeToSeconds(end)
+        const planStart = timeToSeconds(plan.start_time)
+        const planEnd = timeToSeconds(plan.end_time)
+
+        return selectStart >= planStart && selectEnd <= planEnd
+      })
+
+      setAvailableDoctors(filtered)
+      setForm((s) => ({ ...s, doctorId: '' }))
     } catch (err: any) {
-      console.error('Error fetching doctors:', err.message)
+      console.error('Error querying available doctors:', err.message)
       setAvailableDoctors([])
     } finally {
       setLoadingDoctors(false)
@@ -132,13 +267,19 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target
-    setForm((s) => ({ ...s, [name]: value }))
+    setForm((s) => ({
+      ...s,
+      [name]: value,
+      ...(name === 'preferredDate' || name === 'startTime' || name === 'endTime' ? { doctorId: '' } : {}),
+    }))
   }
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
     setMessage(null)
+    setBookingError(null)
+    setCreatedApt(null)
     
     // Validation
     const errors = []
@@ -154,7 +295,6 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
       return
     }
 
-    // Validate that end time is after start time
     if (form.endTime <= form.startTime) {
       setMessage('End time must be after start time')
       return
@@ -162,55 +302,44 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
     setLoading(true)
     try {
-      console.log('Submitting appointment:', form)
-      const { data: appointmentData, error: appointmentError } = await supabase
-        .from('appointments')
-        .insert({
-          patient_name: form.patientName,
-          patient_email: form.email || 'not-provided@clinic.com',
-          patient_phone: form.phone,
-          appointment_date: form.preferredDate,
-          appointment_time: form.startTime,
-          doctor_id: form.doctorId,
-          status: 'pending',
-        })
-        .select()
+      // Dispatch via transaction action
+      const result = await createAppointmentTransaction({
+        doctorId: form.doctorId,
+        appointmentDate: form.preferredDate,
+        appointmentTime: form.startTime,
+        patientName: form.patientName,
+        patientEmail: form.email,
+        patientPhone: form.phone,
+        userId: userId,
+        appointmentType: form.appointmentType,
+        visitReason: form.visitReason,
+      })
 
-      if (appointmentError) {
-        console.error('Supabase error:', appointmentError.message, appointmentError.code, appointmentError.details)
-        throw new Error(appointmentError.message || 'Failed to create appointment')
+      if (!result.success) {
+        setBookingError(result.error || 'Failed to book slot.')
+        setHoldExpiry(null)
+        setActiveHold(null)
+        return
       }
 
-      console.log('Appointment created:', appointmentData)
-
-      // Create admin notification
-      const appointmentId = appointmentData?.[0]?.id
-      if (appointmentId) {
-        const { error: notificationError } = await supabase
-          .from('admin_notifications')
-          .insert({
-            appointment_id: appointmentId,
-            patient_name: form.patientName,
-            patient_email: form.email || 'not-provided@clinic.com',
-            patient_phone: form.phone,
-            appointment_date: form.preferredDate,
-            appointment_time: form.startTime,
-            appointment_end_time: form.endTime,
-            doctor_id: form.doctorId,
-            notification_type: 'new_appointment',
-            status: 'unread',
-          })
-        
-        if (notificationError) {
-          console.warn('Failed to create admin notification:', notificationError)
-        }
-      }
-
+      setHoldExpiry(null)
+      setActiveHold(null)
+      setCreatedApt(result.appointment)
       setMessage('success')
-      setForm({ patientName: '', phone: '', email: '', preferredDate: '', startTime: '', endTime: '', doctorId: '' })
+      setForm({
+        patientName: '',
+        phone: '',
+        email: '',
+        preferredDate: '',
+        startTime: '',
+        endTime: '',
+        doctorId: '',
+        appointmentType: 'consultation',
+        visitReason: '',
+      })
     } catch (err: any) {
       console.error('Error submitting appointment:', err.message || err)
-      setMessage('error')
+      setBookingError(err.message || 'Failed to submit appointment. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -218,94 +347,138 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
   return (
     <div className="bg-white rounded-lg p-6 border border-border shadow-sm w-full max-w-lg">
-      <h3 className="text-xl font-semibold mb-4">Book Appointment</h3>
+      <h3 className="text-xl font-semibold mb-4 text-foreground">Book Appointment</h3>
+
+      {bookingError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
+          <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-bold">Booking Exception:</p>
+            <p className="mt-0.5">{bookingError}</p>
+          </div>
+        </div>
+      )}
+
+      {holdExpiry && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 flex justify-between items-center font-medium">
+          <span className="flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+            Your slot is reserved. Complete booking before expiry.
+          </span>
+          <span className="bg-blue-100 px-2 py-0.5 rounded text-blue-700 font-bold">{countdown}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Patient Name</label>
+          <label className="block text-sm font-medium mb-1 text-slate-700">Patient Name</label>
           <Input 
             name="patientName" 
             value={form.patientName} 
             onChange={handleChange} 
             placeholder="Full name" 
+            className="bg-white"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Phone Number</label>
-          <Input 
-            name="phone" 
-            type="tel" 
-            value={form.phone} 
-            onChange={handleChange} 
-            placeholder="Mobile number" 
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-slate-700">Phone Number</label>
+            <Input 
+              name="phone" 
+              type="tel" 
+              value={form.phone} 
+              onChange={handleChange} 
+              placeholder="Mobile number" 
+              className="bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-slate-700">Email (Optional)</label>
+            <Input 
+              name="email" 
+              type="email" 
+              value={form.email} 
+              onChange={handleChange} 
+              placeholder="Email address" 
+              className="bg-white"
+            />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Preferred Date</label>
+          <label className="block text-sm font-medium mb-1 text-slate-700">Preferred Date</label>
           <Input 
             name="preferredDate" 
             type="date" 
             value={form.preferredDate} 
-            onChange={handleChange}
+            onChange={handleSelectChange}
             min={new Date().toISOString().split('T')[0]}
+            className="bg-white"
           />
           {form.preferredDate && (
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 font-semibold">
               {getDayOfWeek(form.preferredDate)}
             </p>
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Start Time</label>
-          <select
-            name="startTime"
-            value={form.startTime}
-            onChange={handleSelectChange}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">Select start time</option>
-            {timeSlots.map((slot) => (
-              <option key={`start-${slot}`} value={slot}>
-                {slot}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">End Time</label>
-          <select
-            name="endTime"
-            value={form.endTime}
-            onChange={handleSelectChange}
-            disabled={!form.startTime}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-          >
-            <option value="">Select end time</option>
-            {timeSlots
-              .filter((slot) => slot > form.startTime)
-              .map((slot) => (
-                <option key={`end-${slot}`} value={slot}>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-slate-700">Start Time</label>
+            <select
+              name="startTime"
+              value={form.startTime}
+              onChange={handleSelectChange}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Select start time</option>
+              {timeSlots.map((slot) => (
+                <option key={`start-${slot}`} value={slot}>
                   {slot}
                 </option>
               ))}
-          </select>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-slate-700">End Time</label>
+            <select
+              name="endTime"
+              value={form.endTime}
+              onChange={handleSelectChange}
+              disabled={!form.startTime}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+            >
+              <option value="">Select end time</option>
+              {timeSlots
+                .filter((slot) => slot > form.startTime)
+                .map((slot) => (
+                  <option key={`end-${slot}`} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Doctor</label>
+          <label className="block text-sm font-medium mb-1 text-slate-700">Doctor</label>
           <select
             name="doctorId"
             value={form.doctorId}
             onChange={handleSelectChange}
             disabled={!form.startTime || !form.endTime || loadingDoctors || availableDoctors.length === 0}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:text-slate-400 disabled:cursor-not-allowed"
           >
             <option value="">
-              {loadingDoctors ? 'Loading doctors...' : availableDoctors.length === 0 ? 'No doctors available' : 'Select a doctor'}
+              {loadingDoctors 
+                ? 'Loading doctors...' 
+                : (!form.preferredDate || !form.startTime || !form.endTime) 
+                  ? 'Select date and time first' 
+                  : availableDoctors.length === 0 
+                    ? 'No doctors available at this time' 
+                    : 'Select a doctor'}
             </option>
             {availableDoctors.map((doctor) => (
               <option key={doctor.id} value={doctor.id}>
@@ -315,21 +488,66 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           </select>
         </div>
 
+        <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-slate-700">Appointment Type</label>
+            <select
+              name="appointmentType"
+              value={form.appointmentType}
+              onChange={handleSelectChange}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary text-slate-700"
+            >
+              <option value="consultation">General Consultation</option>
+              <option value="follow_up">Follow-Up Review</option>
+              <option value="telemedicine">Video Consultation</option>
+              <option value="home_visit">Home Visit</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-slate-700">Reason for Visit</label>
+            <Input 
+              name="visitReason" 
+              value={form.visitReason} 
+              onChange={handleChange} 
+              placeholder="e.g. Eye checkup" 
+              className="bg-white text-sm"
+            />
+          </div>
+        </div>
+
         {message && (
           <div className={`p-4 rounded-lg border-l-4 ${
             message === 'success'
               ? 'bg-green-50 border-green-500 text-green-800'
-              : message === 'error'
-              ? 'bg-red-50 border-red-500 text-red-800'
               : 'bg-blue-50 border-blue-500 text-blue-800'
           }`}>
             {message === 'success' ? (
-              <>
-                <p className="font-semibold">Appointment Request Submitted!</p>
-                <p className="text-sm mt-1">We'll get back to you shortly. Your appointment request has been received and will be reviewed by our team.</p>
-              </>
-            ) : message === 'error' ? (
-              <p className="text-sm">Failed to submit appointment. Please try again.</p>
+              <div className="space-y-3">
+                <p className="font-semibold text-green-950">Appointment Request Submitted!</p>
+                <p className="text-sm mt-1 text-green-800">Your request is received. You can now sync the appointment with your calendar:</p>
+                
+                {createdApt && (
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <a
+                      href={getGoogleCalendarUrl(createdApt)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 text-xs font-semibold rounded bg-white shadow-sm transition"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
+                      Google Calendar
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => downloadIcsFile(createdApt)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 text-xs font-semibold rounded bg-white shadow-sm transition"
+                    >
+                      <Download className="w-3.5 h-3.5 text-primary" />
+                      Download .ics
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <p className="text-sm">{message}</p>
             )}
@@ -341,7 +559,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           className="w-full bg-primary" 
           disabled={loading}
         >
-          {loading ? 'Submitting...' : 'Submit'}
+          {loading ? 'Submitting...' : 'Submit Booking'}
         </Button>
       </form>
     </div>
