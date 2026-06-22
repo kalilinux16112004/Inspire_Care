@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS services (
   price numeric(10,2),
   duration_minutes integer,
   category text,
+  image_url text,
   is_active boolean DEFAULT true,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()

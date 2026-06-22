@@ -265,7 +265,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
     setForm((s) => ({ ...s, [name]: value }))
   }
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target
     setForm((s) => ({
       ...s,

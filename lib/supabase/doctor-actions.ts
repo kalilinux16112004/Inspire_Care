@@ -34,6 +34,51 @@ export async function addDoctor(payload: DoctorPayload & { is_active: boolean })
       throw new Error(error.message || 'Failed to add doctor');
     }
 
+    const doctorId = data?.[0]?.id;
+    if (doctorId && payload.availability) {
+      try {
+        const schedule = JSON.parse(payload.availability);
+        const DAY_MAP: { [key: string]: number } = {
+          'Sunday': 0,
+          'Monday': 1,
+          'Tuesday': 2,
+          'Wednesday': 3,
+          'Thursday': 4,
+          'Friday': 5,
+          'Saturday': 6
+        };
+        const availabilityRows: any[] = [];
+        
+        Object.entries(schedule).forEach(([dayName, dayInfo]: [string, any]) => {
+          if (dayInfo && dayInfo.enabled) {
+            const weekday = DAY_MAP[dayName];
+            if (weekday !== undefined) {
+              availabilityRows.push({
+                doctor_id: doctorId,
+                weekday,
+                start_time: dayInfo.start || '09:00',
+                end_time: dayInfo.end || '17:00',
+                slot_duration: 30,
+                is_available: true
+              });
+            }
+          }
+        });
+
+        if (availabilityRows.length > 0) {
+          const { error: syncError } = await supabase
+            .from('doctor_availability')
+            .insert(availabilityRows);
+            
+          if (syncError) {
+            console.error('[v0] Error syncing availability rows:', syncError);
+          }
+        }
+      } catch (parseErr) {
+        console.error('[v0] Failed parsing/syncing availability schedule:', parseErr);
+      }
+    }
+
     return { success: true, data: data ? { id: data[0]?.id } : null };
   } catch (error: any) {
     console.error('[v0] Server action error (addDoctor):', error);
@@ -60,6 +105,61 @@ export async function updateDoctor(id: string, payload: DoctorPayload) {
         status: error.status,
       });
       throw new Error(error.message || 'Failed to update doctor');
+    }
+
+    if (payload.availability) {
+      // First delete existing rows for this doctor
+      const { error: deleteErr } = await supabase
+        .from('doctor_availability')
+        .delete()
+        .eq('doctor_id', id);
+
+      if (deleteErr) {
+        console.error('[v0] Error deleting old availability rows:', deleteErr);
+      }
+
+      // Sync new ones
+      try {
+        const schedule = JSON.parse(payload.availability);
+        const DAY_MAP: { [key: string]: number } = {
+          'Sunday': 0,
+          'Monday': 1,
+          'Tuesday': 2,
+          'Wednesday': 3,
+          'Thursday': 4,
+          'Friday': 5,
+          'Saturday': 6
+        };
+        const availabilityRows: any[] = [];
+        
+        Object.entries(schedule).forEach(([dayName, dayInfo]: [string, any]) => {
+          if (dayInfo && dayInfo.enabled) {
+            const weekday = DAY_MAP[dayName];
+            if (weekday !== undefined) {
+              availabilityRows.push({
+                doctor_id: id,
+                weekday,
+                start_time: dayInfo.start || '09:00',
+                end_time: dayInfo.end || '17:00',
+                slot_duration: 30,
+                is_available: true
+              });
+            }
+          }
+        });
+
+        if (availabilityRows.length > 0) {
+          const { error: syncError } = await supabase
+            .from('doctor_availability')
+            .insert(availabilityRows);
+            
+          if (syncError) {
+            console.error('[v0] Error syncing availability rows during update:', syncError);
+          }
+        }
+      } catch (parseErr) {
+        console.error('[v0] Failed parsing/syncing availability schedule during update:', parseErr);
+      }
     }
 
     return { success: true, data: data ? { id: data[0]?.id } : null };
