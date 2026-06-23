@@ -346,7 +346,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg p-6 border border-border dark:border-slate-800 shadow-sm w-full max-w-lg">
+    <div className="bg-white dark:bg-slate-900 rounded-lg p-5 sm:p-6 border border-border dark:border-slate-800 shadow-sm w-full">
       <h3 className="text-xl font-semibold mb-4 text-foreground">Book Appointment</h3>
 
       {bookingError && (
@@ -381,7 +381,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-355">Phone Number</label>
             <Input 
@@ -423,7 +423,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Start Time</label>
             <select
@@ -488,7 +488,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-4">
           <div>
             <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Appointment Type</label>
             <select
