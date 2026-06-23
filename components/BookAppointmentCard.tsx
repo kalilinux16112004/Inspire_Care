@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
-import { CalendarDays, Download, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { CalendarDays, Download, AlertTriangle, ShieldCheck, X } from 'lucide-react'
 import { createAppointmentTransaction, createSlotHold, releaseSlotHold } from '@/lib/booking'
 import { getGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendar'
 
-export default function BookAppointmentCard({ defaultDepartment }: { defaultDepartment?: string }) {
+export default function BookAppointmentCard({ defaultDepartment, onClose }: { defaultDepartment?: string; onClose?: () => void }) {
   const supabase = createClient()
   const [form, setForm] = useState({
     patientName: '',
@@ -347,7 +347,19 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-lg p-5 sm:p-6 border border-border dark:border-slate-800 shadow-sm w-full">
-      <h3 className="text-xl font-semibold mb-4 text-foreground">Book Appointment</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-foreground">Book Appointment</h3>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors active:scale-95 duration-150"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       {bookingError && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex items-start gap-2">
@@ -406,7 +418,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
           </div>
         </div>
 
-        <div>
+        <div className="w-full min-w-0 overflow-hidden">
           <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-350">Preferred Date</label>
           <Input 
             name="preferredDate" 
@@ -414,7 +426,7 @@ export default function BookAppointmentCard({ defaultDepartment }: { defaultDepa
             value={form.preferredDate} 
             onChange={handleSelectChange}
             min={new Date().toISOString().split('T')[0]}
-            className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800"
+            className="w-full min-w-0 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800"
           />
           {form.preferredDate && (
             <p className="text-xs text-muted-foreground mt-1 font-semibold">
